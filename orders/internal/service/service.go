@@ -1,8 +1,8 @@
 package service
 
 import (
-	"github.com/idkwhyureadthis/project-practicum/restaurants/internal/storage/db"
-	"github.com/idkwhyureadthis/project-practicum/restaurants/internal/storage/db/generated"
+	"github.com/idkwhyureadthis/project-practicum/orders/internal/storage/db"
+	"github.com/idkwhyureadthis/project-practicum/orders/internal/storage/db/generated"
 )
 
 type Service struct {

@@ -3,7 +3,7 @@ package app
 import (
 	"log"
 
-	"github.com/idkwhyureadthis/project-practicum/restaurants/internal/handler"
+	"github.com/idkwhyureadthis/project-practicum/orders/internal/handler"
 )
 
 type App struct {

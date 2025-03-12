@@ -1,4 +1,4 @@
-module github.com/idkwhyureadthis/project-practicum/restaurants
+module github.com/idkwhyureadthis/project-practicum/orders
 
 go 1.23.5
 

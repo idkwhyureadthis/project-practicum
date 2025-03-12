@@ -1,7 +1,7 @@
 package handler
 
 import (
-	"github.com/idkwhyureadthis/project-practicum/restaurants/internal/service"
+	"github.com/idkwhyureadthis/project-practicum/orders/internal/service"
 	"github.com/labstack/echo/v4"
 )
 

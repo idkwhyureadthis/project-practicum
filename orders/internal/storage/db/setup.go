@@ -4,7 +4,7 @@ import (
 	"context"
 	"log"
 
-	"github.com/idkwhyureadthis/project-practicum/restaurants/internal/storage/db/generated"
+	"github.com/idkwhyureadthis/project-practicum/orders/internal/storage/db/generated"
 	"github.com/jackc/pgx/v5"
 )
 

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/idkwhyureadthis/project-practicum/restaurants/internal/app"
+	"github.com/idkwhyureadthis/project-practicum/orders/internal/app"
 	"github.com/joho/godotenv"
 )
 
