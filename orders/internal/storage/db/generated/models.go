@@ -5,15 +5,56 @@
 package generated
 
 import (
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+type Admin struct {
+	ID              uuid.UUID  `json:"id"`
+	Login           string     `json:"login"`
+	CryptedPassword string     `json:"crypted_password"`
+	IsSuperadmin    bool       `json:"is_superadmin"`
+	RestaurantID    *uuid.UUID `json:"restaurant_id"`
+	CryptedRefresh  *string    `json:"crypted_refresh"`
+}
+
+type BannedItem struct {
+	RestaurantID uuid.UUID `json:"restaurant_id"`
+	ItemID       uuid.UUID `json:"item_id"`
+}
+
+type Item struct {
+	ID          uuid.UUID `json:"id"`
+	Name        string    `json:"name"`
+	Description string    `json:"description"`
+	Sizes       []string  `json:"sizes"`
+	Prices      []float64 `json:"prices"`
+	Photo       []byte    `json:"photo"`
+}
+
+type Order struct {
+	ID           uuid.UUID  `json:"id"`
+	DisplayedID  int32      `json:"displayed_id"`
+	RestaurantID *uuid.UUID `json:"restaurant_id"`
+	TotalPrice   float64    `json:"total_price"`
+	Status       string     `json:"status"`
+}
+
+type Restaurant struct {
+	ID          uuid.UUID    `json:"id"`
+	Coordinates pgtype.Point `json:"coordinates"`
+	Address     string       `json:"address"`
+	OpenTime    pgtype.Time  `json:"open_time"`
+	CloseTime   pgtype.Time  `json:"close_time"`
+}
+
 type User struct {
-	ID              int32            `json:"id"`
+	ID              uuid.UUID        `json:"id"`
 	PhoneNumber     string           `json:"phone_number"`
 	CryptedPassword string           `json:"crypted_password"`
 	Name            string           `json:"name"`
 	Mail            string           `json:"mail"`
 	Birthday        pgtype.Date      `json:"birthday"`
+	CryptedRefresh  *string          `json:"crypted_refresh"`
 	CreatedAt       pgtype.Timestamp `json:"created_at"`
 }

@@ -6,42 +6,68 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-
+	"github.com/google/uuid"
 	"github.com/idkwhyureadthis/project-practicum/orders/internal/storage/db"
 	"github.com/idkwhyureadthis/project-practicum/orders/internal/storage/db/generated"
+	"github.com/idkwhyureadthis/project-practicum/orders/pkg/tokens"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
+	"golang.org/x/crypto/bcrypt"
 )
 
 type Service struct {
-	conn *generated.Queries
+	conn   *generated.Queries
+	secret []byte
 }
 
-func New(connUrl string) *Service {
+func New(connUrl string, secretKey string) *Service {
 	service := Service{}
 	service.conn = db.SetupConnection(connUrl)
+	service.secret = []byte(secretKey)
 	return &service
 }
 
-func (s *Service) LogIn(phoneNumber, password string) (*generated.User, int, error) {
+func (s *Service) LogIn(phoneNumber, password string) (*tokens.Tokens, *generated.User, error) {
 	h := sha256.New()
 	h.Write([]byte(password))
-	crypytedPass := hex.EncodeToString(h.Sum(nil))
+	cryptedPass := hex.EncodeToString(h.Sum(nil))
 
 	fmt.Println(phoneNumber, password)
 	user, err := s.conn.LogIn(context.Background(), generated.LogInParams{
 		PhoneNumber:     phoneNumber,
-		CryptedPassword: crypytedPass,
+		CryptedPassword: cryptedPass,
 	})
 	if err == pgx.ErrNoRows {
-		return nil, 401, err
+		return nil, nil, ErrWrongLoginOrPass
 	} else if err != nil {
-		return nil, 400, err
+		return nil, nil, err
 	}
-	return &user, 201, nil
+
+	tokens, err := tokens.Generate("user", user.ID.String(), s.secret)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	h = sha256.New()
+	h.Write([]byte(tokens.Refresh))
+	cryptedRefresh, err := bcrypt.GenerateFromPassword(h.Sum(nil), bcrypt.DefaultCost)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	refreshString := string(cryptedRefresh)
+	err = s.conn.UpdateRefresh(context.Background(), generated.UpdateRefreshParams{
+		ID:             user.ID,
+		CryptedRefresh: &refreshString,
+	})
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return tokens, &user, nil
 }
 
-func (s *Service) SignUp(phoneNumber, password, name, mail string) (*generated.User, int, error) {
+func (s *Service) SignUp(phoneNumber, password, name, mail string) (*generated.User, *tokens.Tokens, int, error) {
 	h := sha256.New()
 	h.Write([]byte(password))
 	cryptedPass := hex.EncodeToString(h.Sum(nil))
@@ -54,8 +80,118 @@ func (s *Service) SignUp(phoneNumber, password, name, mail string) (*generated.U
 	})
 	var pgErr *pgconn.PgError
 	if errors.As(err, &pgErr) && pgErr.Code == "23505" {
-		return nil, 409, ErrPhoneOccupied
+		return nil, nil, 409, ErrPhoneOccupied
+	}
+	if err != nil {
+		return nil, nil, 500, err
 	}
 
-	return &user, 200, nil
+	tokensData, err := tokens.Generate("user", user.ID.String(), s.secret)
+	if err != nil {
+		return nil, nil, 500, err
+	}
+
+	h = sha256.New()
+	h.Write([]byte(tokensData.Refresh))
+	cryptedRefresh, err := bcrypt.GenerateFromPassword(h.Sum(nil), bcrypt.DefaultCost)
+	if err != nil {
+		return nil, nil, 500, err
+	}
+
+	refreshString := string(cryptedRefresh)
+	err = s.conn.UpdateRefresh(context.Background(), generated.UpdateRefreshParams{
+		ID:             user.ID,
+		CryptedRefresh: &refreshString,
+	})
+	if err != nil {
+		return nil, nil, 500, err
+	}
+
+	return &user, tokensData, 200, nil
+}
+
+func (s *Service) Verify(token, expectedType string) (uuid.UUID, error) {
+	tokenInfo, err := tokens.Verify(token, s.secret)
+	if err != nil {
+		return uuid.Nil, ErrWrongToken
+	}
+	if tokenInfo.Type != expectedType || tokenInfo.Role != "user" {
+		return uuid.Nil, ErrWrongToken
+	}
+
+	userID, err := uuid.Parse(tokenInfo.Id)
+	if err != nil {
+		return uuid.Nil, ErrWrongToken
+	}
+	
+	return userID, nil
+}
+
+func (s *Service) Refresh(refreshToken string) (*tokens.Tokens, error) {
+	tokenInfo, err := tokens.Verify(refreshToken, s.secret)
+	if err != nil {
+		return nil, ErrWrongToken
+	}
+
+	if tokenInfo.Type != "refresh" || tokenInfo.Role != "user" {
+		return nil, ErrWrongToken
+	}
+
+	userID, err := uuid.Parse(tokenInfo.Id)
+	if err != nil {
+		return nil, ErrWrongToken
+	}
+
+	storedRefresh, err := s.conn.GetRefresh(context.Background(), userID)
+	if err != nil {
+		return nil, err
+	}
+	
+	if storedRefresh == nil {
+		return nil, ErrExpiredToken
+	}
+
+	h := sha256.New()
+	h.Write([]byte(refreshToken))
+	if err = bcrypt.CompareHashAndPassword([]byte(*storedRefresh), h.Sum(nil)); err != nil {
+		return nil, ErrExpiredToken
+	}
+
+	newTokens, err := tokens.Generate("user", tokenInfo.Id, s.secret)
+	if err != nil {
+		return nil, err
+	}
+
+	h = sha256.New()
+	h.Write([]byte(newTokens.Refresh))
+	cryptedRefresh, err := bcrypt.GenerateFromPassword(h.Sum(nil), bcrypt.DefaultCost)
+	if err != nil {
+		return nil, err
+	}
+	refreshString := string(cryptedRefresh)
+	err = s.conn.UpdateRefresh(context.Background(), generated.UpdateRefreshParams{
+		ID:             userID,
+		CryptedRefresh: &refreshString,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return newTokens, nil
+}
+
+func (s *Service) GetUserByID(id uuid.UUID) (*generated.User, error) {
+	user, err := s.conn.GetUserByID(context.Background(), id)
+	if err == pgx.ErrNoRows {
+		return nil, ErrNotFound
+	}
+	return &user, err
+}
+
+func (s *Service) InvalidateRefreshToken(id uuid.UUID) error {
+	var emptyString string
+	return s.conn.UpdateRefresh(context.Background(), generated.UpdateRefreshParams{
+		ID:             id,
+		CryptedRefresh: &emptyString,
+	})
 }

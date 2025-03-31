@@ -10,9 +10,9 @@ type App struct {
 	h *handler.Handler
 }
 
-func New(connUrl string) *App {
+func New(connUrl string, secret string) *App {
 	app := App{}
-	app.h = handler.New(connUrl)
+	app.h = handler.New(connUrl, secret)
 
 	return &app
 }

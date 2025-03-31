@@ -7,12 +7,14 @@ package generated
 
 import (
 	"context"
+
+	"github.com/google/uuid"
 )
 
 const createUser = `-- name: CreateUser :one
-INSERT INTO users (phone_number, name, crypted_password, mail)
-VALUES ($1, $2, $3, $4)
-RETURNING id, phone_number, crypted_password, name, mail, birthday, created_at
+INSERT INTO users (id, phone_number, name, crypted_password, mail)
+VALUES (gen_random_uuid(), $1, $2, $3, $4)
+RETURNING id, phone_number, crypted_password, name, mail, birthday, crypted_refresh, created_at
 `
 
 type CreateUserParams struct {
@@ -37,13 +39,45 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 		&i.Name,
 		&i.Mail,
 		&i.Birthday,
+		&i.CryptedRefresh,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
+const getRefresh = `-- name: GetRefresh :one
+SELECT crypted_refresh FROM users WHERE id = $1
+`
+
+func (q *Queries) GetRefresh(ctx context.Context, id uuid.UUID) (*string, error) {
+	row := q.db.QueryRow(ctx, getRefresh, id)
+	var crypted_refresh *string
+	err := row.Scan(&crypted_refresh)
+	return crypted_refresh, err
+}
+
+const getUserByID = `-- name: GetUserByID :one
+SELECT id, phone_number, crypted_password, name, mail, birthday, crypted_refresh, created_at FROM users WHERE id = $1
+`
+
+func (q *Queries) GetUserByID(ctx context.Context, id uuid.UUID) (User, error) {
+	row := q.db.QueryRow(ctx, getUserByID, id)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.PhoneNumber,
+		&i.CryptedPassword,
+		&i.Name,
+		&i.Mail,
+		&i.Birthday,
+		&i.CryptedRefresh,
 		&i.CreatedAt,
 	)
 	return i, err
 }
 
 const logIn = `-- name: LogIn :one
-SELECT id, phone_number, crypted_password, name, mail, birthday, created_at FROM users
+SELECT id, phone_number, crypted_password, name, mail, birthday, crypted_refresh, created_at FROM users
 WHERE phone_number = $1 AND crypted_password = $2
 `
 
@@ -62,7 +96,22 @@ func (q *Queries) LogIn(ctx context.Context, arg LogInParams) (User, error) {
 		&i.Name,
 		&i.Mail,
 		&i.Birthday,
+		&i.CryptedRefresh,
 		&i.CreatedAt,
 	)
 	return i, err
+}
+
+const updateRefresh = `-- name: UpdateRefresh :exec
+UPDATE users SET crypted_refresh = $2 WHERE id = $1
+`
+
+type UpdateRefreshParams struct {
+	ID             uuid.UUID `json:"id"`
+	CryptedRefresh *string   `json:"crypted_refresh"`
+}
+
+func (q *Queries) UpdateRefresh(ctx context.Context, arg UpdateRefreshParams) error {
+	_, err := q.db.Exec(ctx, updateRefresh, arg.ID, arg.CryptedRefresh)
+	return err
 }
