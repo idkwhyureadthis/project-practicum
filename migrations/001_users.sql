@@ -1,10 +1,12 @@
 -- +goose Up
 CREATE TABLE users(
-    phone_number TEXT PRIMARY KEY,
+    id UUID PRIMARY KEY,
+    phone_number TEXT UNIQUE NOT NULL,
+    crypted_password TEXT NOT NULL,
     name TEXT NOT NULL,
-    about TEXT,
+    mail TEXT NOT NULL,
     birthday DATE,
-    created_at TIMESTAMP
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- +goose Down

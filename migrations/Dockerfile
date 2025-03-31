@@ -1,6 +1,10 @@
 FROM gomicro/goose
 
-ADD *.sql /migrations/
-ADD entrypoint.sh /migrations/
+COPY *.sql /migrations/
+COPY entrypoint.sh /migrations/
 
-ENTRYPOINT ["/migrations/entrypoint.sh"]
+RUN ls -la /migrations
+
+RUN chmod +x /migrations/entrypoint.sh
+
+ENTRYPOINT ["sh", "/migrations/entrypoint.sh"]
