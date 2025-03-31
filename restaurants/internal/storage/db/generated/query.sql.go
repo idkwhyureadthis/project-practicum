@@ -7,22 +7,79 @@ package generated
 
 import (
 	"context"
+
+	"github.com/google/uuid"
 )
 
-const getUser = `-- name: GetUser :one
-SELECT phone_number, name, about, birthday, created_at FROM users
-WHERE phone_number = $1
+const checkAdmin = `-- name: CheckAdmin :one
+SELECT COUNT(*) FROM admins WHERE login = 'admin'
 `
 
-func (q *Queries) GetUser(ctx context.Context, phoneNumber string) (User, error) {
-	row := q.db.QueryRow(ctx, getUser, phoneNumber)
-	var i User
+func (q *Queries) CheckAdmin(ctx context.Context) (int64, error) {
+	row := q.db.QueryRow(ctx, checkAdmin)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
+const getAdmin = `-- name: GetAdmin :one
+SELECT id, login, crypted_password, is_superadmin, restaurant_id, crypted_refresh FROM admins
+WHERE login = $1 AND crypted_password = $2
+`
+
+type GetAdminParams struct {
+	Login           string `json:"login"`
+	CryptedPassword string `json:"crypted_password"`
+}
+
+func (q *Queries) GetAdmin(ctx context.Context, arg GetAdminParams) (Admin, error) {
+	row := q.db.QueryRow(ctx, getAdmin, arg.Login, arg.CryptedPassword)
+	var i Admin
 	err := row.Scan(
-		&i.PhoneNumber,
-		&i.Name,
-		&i.About,
-		&i.Birthday,
-		&i.CreatedAt,
+		&i.ID,
+		&i.Login,
+		&i.CryptedPassword,
+		&i.IsSuperadmin,
+		&i.RestaurantID,
+		&i.CryptedRefresh,
 	)
 	return i, err
+}
+
+const getRefresh = `-- name: GetRefresh :one
+SELECT crypted_refresh from admins
+WHERE id = $1
+`
+
+func (q *Queries) GetRefresh(ctx context.Context, id uuid.UUID) (*string, error) {
+	row := q.db.QueryRow(ctx, getRefresh, id)
+	var crypted_refresh *string
+	err := row.Scan(&crypted_refresh)
+	return crypted_refresh, err
+}
+
+const setupAdmin = `-- name: SetupAdmin :exec
+INSERT INTO admins
+(login, crypted_password, is_superadmin)
+VALUES ('admin', $1, TRUE)
+`
+
+func (q *Queries) SetupAdmin(ctx context.Context, cryptedPassword string) error {
+	_, err := q.db.Exec(ctx, setupAdmin, cryptedPassword)
+	return err
+}
+
+const updateRefresh = `-- name: UpdateRefresh :exec
+UPDATE admins
+SET crypted_refresh = $1 where id = $2
+`
+
+type UpdateRefreshParams struct {
+	CryptedRefresh *string   `json:"crypted_refresh"`
+	ID             uuid.UUID `json:"id"`
+}
+
+func (q *Queries) UpdateRefresh(ctx context.Context, arg UpdateRefreshParams) error {
+	_, err := q.db.Exec(ctx, updateRefresh, arg.CryptedRefresh, arg.ID)
+	return err
 }

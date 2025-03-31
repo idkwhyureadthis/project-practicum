@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"os"
 
 	"github.com/idkwhyureadthis/project-practicum/restaurants/internal/app"
@@ -12,7 +11,8 @@ func main() {
 	godotenv.Load()
 	port := os.Getenv("PORT")
 	connUrl := os.Getenv("DB_URL")
-	app := app.New(connUrl)
-	fmt.Println(app)
+	adminPass := os.Getenv("ADMIN_PASS")
+	secretKey := os.Getenv("JWT_SECRET")
+	app := app.New(connUrl, adminPass, secretKey)
 	app.Run(port)
 }
