@@ -9,18 +9,58 @@ import (
 	"context"
 )
 
-const getUser = `-- name: GetUser :one
-SELECT phone_number, name, about, birthday, created_at FROM users
-WHERE phone_number = $1
+const createUser = `-- name: CreateUser :one
+INSERT INTO users (phone_number, name, crypted_password, mail)
+VALUES ($1, $2, $3, $4)
+RETURNING id, phone_number, crypted_password, name, mail, birthday, created_at
 `
 
-func (q *Queries) GetUser(ctx context.Context, phoneNumber string) (User, error) {
-	row := q.db.QueryRow(ctx, getUser, phoneNumber)
+type CreateUserParams struct {
+	PhoneNumber     string `json:"phone_number"`
+	Name            string `json:"name"`
+	CryptedPassword string `json:"crypted_password"`
+	Mail            string `json:"mail"`
+}
+
+func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, error) {
+	row := q.db.QueryRow(ctx, createUser,
+		arg.PhoneNumber,
+		arg.Name,
+		arg.CryptedPassword,
+		arg.Mail,
+	)
 	var i User
 	err := row.Scan(
+		&i.ID,
 		&i.PhoneNumber,
+		&i.CryptedPassword,
 		&i.Name,
-		&i.About,
+		&i.Mail,
+		&i.Birthday,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
+const logIn = `-- name: LogIn :one
+SELECT id, phone_number, crypted_password, name, mail, birthday, created_at FROM users
+WHERE phone_number = $1 AND crypted_password = $2
+`
+
+type LogInParams struct {
+	PhoneNumber     string `json:"phone_number"`
+	CryptedPassword string `json:"crypted_password"`
+}
+
+func (q *Queries) LogIn(ctx context.Context, arg LogInParams) (User, error) {
+	row := q.db.QueryRow(ctx, logIn, arg.PhoneNumber, arg.CryptedPassword)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.PhoneNumber,
+		&i.CryptedPassword,
+		&i.Name,
+		&i.Mail,
 		&i.Birthday,
 		&i.CreatedAt,
 	)

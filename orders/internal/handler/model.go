@@ -18,6 +18,11 @@ func New(connUrl string) *Handler {
 	handler := Handler{}
 	handler.e = echo.New()
 	handler.s = service.New(connUrl)
-
+	handler.SetupHandlers()
 	return &handler
+}
+
+func (h *Handler) SetupHandlers() {
+	h.e.GET("/users", h.LogIn)
+	h.e.POST("/users", h.SignUp)
 }

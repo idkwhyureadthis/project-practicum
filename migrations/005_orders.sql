@@ -3,8 +3,8 @@ CREATE TABLE orders(
     id UUID PRIMARY KEY,
     displayed_id INTEGER NOT NULL,
     restaurant_id UUID REFERENCES restaurants(id),
-    total_price FLOAT,
-    status TEXT
+    total_price FLOAT NOT NULL,
+    status TEXT NOT NULL
 );
 
 
