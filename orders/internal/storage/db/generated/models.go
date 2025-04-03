@@ -43,7 +43,7 @@ type Order struct {
 type Restaurant struct {
 	ID          uuid.UUID    `json:"id"`
 	Coordinates pgtype.Point `json:"coordinates"`
-	Address     string       `json:"address"`
+	Name        string       `json:"name"`
 	OpenTime    pgtype.Time  `json:"open_time"`
 	CloseTime   pgtype.Time  `json:"close_time"`
 }

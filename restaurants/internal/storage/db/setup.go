@@ -6,14 +6,15 @@ import (
 	"encoding/hex"
 	"log"
 	"log/slog"
+	"time"
 
 	"github.com/idkwhyureadthis/project-practicum/restaurants/internal/storage/db/generated"
 	"github.com/jackc/pgx/v5"
 )
 
 func SetupConnection(connUrl, adminPass string) *generated.Queries {
-	// TODO: define context
-	conn, err := pgx.Connect(context.TODO(), connUrl)
+	ctx, _ := context.WithTimeout(context.Background(), time.Second)
+	conn, err := pgx.Connect(ctx, connUrl)
 	if err != nil || conn == nil {
 		log.Fatal(err)
 	}

@@ -9,7 +9,34 @@ import (
 	"context"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgtype"
 )
+
+const addRestaurant = `-- name: AddRestaurant :one
+INSERT INTO restaurants
+(coordinates, name, open_time, close_time) VALUES
+($1, $2, $3, $4)
+RETURNING id
+`
+
+type AddRestaurantParams struct {
+	Coordinates pgtype.Point `json:"coordinates"`
+	Name        string       `json:"name"`
+	OpenTime    pgtype.Time  `json:"open_time"`
+	CloseTime   pgtype.Time  `json:"close_time"`
+}
+
+func (q *Queries) AddRestaurant(ctx context.Context, arg AddRestaurantParams) (uuid.UUID, error) {
+	row := q.db.QueryRow(ctx, addRestaurant,
+		arg.Coordinates,
+		arg.Name,
+		arg.OpenTime,
+		arg.CloseTime,
+	)
+	var id uuid.UUID
+	err := row.Scan(&id)
+	return id, err
+}
 
 const checkAdmin = `-- name: CheckAdmin :one
 SELECT COUNT(*) FROM admins WHERE login = 'admin'
@@ -20,6 +47,52 @@ func (q *Queries) CheckAdmin(ctx context.Context) (int64, error) {
 	var count int64
 	err := row.Scan(&count)
 	return count, err
+}
+
+const createAdmin = `-- name: CreateAdmin :one
+INSERT INTO admins (login, crypted_password, restaurant_id)
+VALUES ($1, $2, $3)
+RETURNING id
+`
+
+type CreateAdminParams struct {
+	Login           string     `json:"login"`
+	CryptedPassword string     `json:"crypted_password"`
+	RestaurantID    *uuid.UUID `json:"restaurant_id"`
+}
+
+func (q *Queries) CreateAdmin(ctx context.Context, arg CreateAdminParams) (uuid.UUID, error) {
+	row := q.db.QueryRow(ctx, createAdmin, arg.Login, arg.CryptedPassword, arg.RestaurantID)
+	var id uuid.UUID
+	err := row.Scan(&id)
+	return id, err
+}
+
+const createItem = `-- name: CreateItem :one
+INSERT INTO items (name, description, sizes, prices, photos)
+VALUES ($1, $2, $3, $4, $5)
+RETURNING id
+`
+
+type CreateItemParams struct {
+	Name        string    `json:"name"`
+	Description string    `json:"description"`
+	Sizes       []string  `json:"sizes"`
+	Prices      []float64 `json:"prices"`
+	Photos      []string  `json:"photos"`
+}
+
+func (q *Queries) CreateItem(ctx context.Context, arg CreateItemParams) (uuid.UUID, error) {
+	row := q.db.QueryRow(ctx, createItem,
+		arg.Name,
+		arg.Description,
+		arg.Sizes,
+		arg.Prices,
+		arg.Photos,
+	)
+	var id uuid.UUID
+	err := row.Scan(&id)
+	return id, err
 }
 
 const getAdmin = `-- name: GetAdmin :one
@@ -56,6 +129,36 @@ func (q *Queries) GetRefresh(ctx context.Context, id uuid.UUID) (*string, error)
 	var crypted_refresh *string
 	err := row.Scan(&crypted_refresh)
 	return crypted_refresh, err
+}
+
+const getRestaurants = `-- name: GetRestaurants :many
+SELECT id, coordinates, name, open_time, close_time FROM restaurants
+`
+
+func (q *Queries) GetRestaurants(ctx context.Context) ([]Restaurant, error) {
+	rows, err := q.db.Query(ctx, getRestaurants)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Restaurant
+	for rows.Next() {
+		var i Restaurant
+		if err := rows.Scan(
+			&i.ID,
+			&i.Coordinates,
+			&i.Name,
+			&i.OpenTime,
+			&i.CloseTime,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const setupAdmin = `-- name: SetupAdmin :exec

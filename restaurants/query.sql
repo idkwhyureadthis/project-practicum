@@ -20,3 +20,25 @@ SET crypted_refresh = $1 where id = $2;
 -- name: GetRefresh :one
 SELECT crypted_refresh from admins
 WHERE id = $1;
+
+
+-- name: AddRestaurant :one
+INSERT INTO restaurants
+(coordinates, name, open_time, close_time) VALUES
+($1, $2, $3, $4)
+RETURNING id;
+
+
+-- name: GetRestaurants :many
+SELECT * FROM restaurants;
+
+
+-- name: CreateAdmin :one
+INSERT INTO admins (login, crypted_password, restaurant_id)
+VALUES ($1, $2, $3)
+RETURNING id;
+
+-- name: CreateItem :one
+INSERT INTO items (name, description, sizes, prices, photos)
+VALUES ($1, $2, $3, $4, $5)
+RETURNING id;

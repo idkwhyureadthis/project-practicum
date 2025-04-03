@@ -18,6 +18,20 @@ type LoginRequest struct {
 	Password string `json:"password"`
 }
 
+type CreateAdminRequest struct {
+	Login        string `json:"login"`
+	Password     string `json:"password"`
+	RestaurantId string `json:"restaurant_id"`
+}
+
+type AddRestaurantRequest struct {
+	OpenTime  string  `json:"open_time"`
+	CloseTime string  `json:"close_time"`
+	Latitude  float64 `json:"lat"`
+	Longitude float64 `json:"lng"`
+	Name      string  `json:"name"`
+}
+
 type Handler struct {
 	e      *echo.Echo
 	s      *service.Service
@@ -38,6 +52,13 @@ func New(connUrl, adminPass, secret string) *Handler {
 
 func (h *Handler) setup() {
 	h.e.POST("/login", h.login)
+	h.e.POST("/refresh", h.refresh)
 	h.e.POST("/verify", h.verify)
-	h.e.POST("/generate", h.generate)
+	restaurants := h.e.Group("/restaurants")
+	restaurants.POST("", h.addRestaurant, h.authMiddleware)
+	restaurants.GET("", h.getRestaurants)
+	admins := h.e.Group("/admins")
+	admins.POST("", h.createAdmin, h.authMiddleware)
+	items := h.e.Group("/items")
+	items.POST("", h.addItem, h.authMiddleware)
 }

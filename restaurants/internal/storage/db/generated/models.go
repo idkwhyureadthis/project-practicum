@@ -29,7 +29,7 @@ type Item struct {
 	Description string    `json:"description"`
 	Sizes       []string  `json:"sizes"`
 	Prices      []float64 `json:"prices"`
-	Photo       []byte    `json:"photo"`
+	Photos      []string  `json:"photos"`
 }
 
 type Order struct {
@@ -43,7 +43,7 @@ type Order struct {
 type Restaurant struct {
 	ID          uuid.UUID    `json:"id"`
 	Coordinates pgtype.Point `json:"coordinates"`
-	Address     string       `json:"address"`
+	Name        string       `json:"name"`
 	OpenTime    pgtype.Time  `json:"open_time"`
 	CloseTime   pgtype.Time  `json:"close_time"`
 }
@@ -55,5 +55,6 @@ type User struct {
 	Name            string           `json:"name"`
 	Mail            string           `json:"mail"`
 	Birthday        pgtype.Date      `json:"birthday"`
+	CryptedRefresh  *string          `json:"crypted_refresh"`
 	CreatedAt       pgtype.Timestamp `json:"created_at"`
 }
