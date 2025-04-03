@@ -6,6 +6,7 @@ CREATE TABLE users(
     name TEXT NOT NULL,
     mail TEXT NOT NULL,
     birthday DATE,
+    crypted_refresh TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 

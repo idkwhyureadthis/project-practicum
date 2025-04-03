@@ -6,6 +6,8 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"net/http"
+
 	"github.com/google/uuid"
 	"github.com/idkwhyureadthis/project-practicum/orders/internal/storage/db"
 	"github.com/idkwhyureadthis/project-practicum/orders/internal/storage/db/generated"
@@ -80,22 +82,22 @@ func (s *Service) SignUp(phoneNumber, password, name, mail string) (*generated.U
 	})
 	var pgErr *pgconn.PgError
 	if errors.As(err, &pgErr) && pgErr.Code == "23505" {
-		return nil, nil, 409, ErrPhoneOccupied
+		return nil, nil, http.StatusConflict, ErrPhoneOccupied
 	}
 	if err != nil {
-		return nil, nil, 500, err
+		return nil, nil, http.StatusInternalServerError, err
 	}
 
 	tokensData, err := tokens.Generate("user", user.ID.String(), s.secret)
 	if err != nil {
-		return nil, nil, 500, err
+		return nil, nil, http.StatusInternalServerError, err
 	}
 
 	h = sha256.New()
 	h.Write([]byte(tokensData.Refresh))
 	cryptedRefresh, err := bcrypt.GenerateFromPassword(h.Sum(nil), bcrypt.DefaultCost)
 	if err != nil {
-		return nil, nil, 500, err
+		return nil, nil, http.StatusInternalServerError, err
 	}
 
 	refreshString := string(cryptedRefresh)
@@ -104,10 +106,10 @@ func (s *Service) SignUp(phoneNumber, password, name, mail string) (*generated.U
 		CryptedRefresh: &refreshString,
 	})
 	if err != nil {
-		return nil, nil, 500, err
+		return nil, nil, http.StatusInternalServerError, err
 	}
 
-	return &user, tokensData, 200, nil
+	return &user, tokensData, http.StatusOK, nil
 }
 
 func (s *Service) Verify(token, expectedType string) (uuid.UUID, error) {
@@ -123,7 +125,7 @@ func (s *Service) Verify(token, expectedType string) (uuid.UUID, error) {
 	if err != nil {
 		return uuid.Nil, ErrWrongToken
 	}
-	
+
 	return userID, nil
 }
 
@@ -146,7 +148,7 @@ func (s *Service) Refresh(refreshToken string) (*tokens.Tokens, error) {
 	if err != nil {
 		return nil, err
 	}
-	
+
 	if storedRefresh == nil {
 		return nil, ErrExpiredToken
 	}

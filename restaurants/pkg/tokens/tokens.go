@@ -28,7 +28,7 @@ func Generate(role, id string, secret []byte) (*Tokens, error) {
 		"access",
 		jwt.RegisteredClaims{
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Second)),
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Hour)),
 			Audience:  []string{role},
 			Subject:   id,
 		},
