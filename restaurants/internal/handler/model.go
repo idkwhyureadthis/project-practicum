@@ -32,6 +32,10 @@ type AddRestaurantRequest struct {
 	Name      string  `json:"name"`
 }
 
+type ItemActionRequest struct {
+	ItemId string `json:"item_id"`
+}
+
 type Handler struct {
 	e      *echo.Echo
 	s      *service.Service
@@ -54,11 +58,14 @@ func (h *Handler) setup() {
 	h.e.POST("/login", h.login)
 	h.e.POST("/refresh", h.refresh)
 	h.e.POST("/verify", h.verify)
-	restaurants := h.e.Group("/restaurants")
-	restaurants.POST("", h.addRestaurant, h.authMiddleware)
-	restaurants.GET("", h.getRestaurants)
-	admins := h.e.Group("/admins")
-	admins.POST("", h.createAdmin, h.authMiddleware)
 	items := h.e.Group("/items")
+	admins := h.e.Group("/admins")
+	restaurants := h.e.Group("/restaurants")
+	restaurants.GET("", h.getRestaurants)
+	restaurants.POST("", h.addRestaurant, h.authMiddleware)
+	admins.POST("", h.createAdmin, h.authMiddleware)
+	items.GET("", h.getItems)
 	items.POST("", h.addItem, h.authMiddleware)
+	items.POST("/ban", h.banItem, h.authMiddleware)
+	items.POST("/unban", h.unbanItem, h.authMiddleware)
 }

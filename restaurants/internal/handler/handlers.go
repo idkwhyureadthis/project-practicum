@@ -39,7 +39,7 @@ func (h *Handler) verify(c echo.Context) error {
 		return Err2Json(err.Error(), c, http.StatusBadRequest)
 	}
 
-	role, err := h.s.Verify(data.Token, "access")
+	role, err := h.s.Verify(data.Token, "access", c)
 	if err != nil {
 		return Err2Json(err.Error(), c, http.StatusUnauthorized)
 	}
@@ -151,5 +151,83 @@ func (h *Handler) addItem(c echo.Context) error {
 
 	return c.JSON(http.StatusCreated, map[string]interface{}{
 		"item_id": itemId.String(),
+	})
+}
+
+func (h *Handler) getItems(c echo.Context) error {
+	restaurantId := c.QueryParam("restaurant_id")
+
+	parsedId, err := uuid.Parse(restaurantId)
+
+	if err != nil {
+		return Err2Json(err.Error(), c, http.StatusBadRequest)
+	}
+
+	items, err := h.s.GetItems(parsedId)
+
+	if err != nil {
+		return Err2Json(err.Error(), c, http.StatusInternalServerError)
+	}
+
+	return c.JSON(http.StatusOK, *items)
+}
+
+func (h *Handler) banItem(c echo.Context) error {
+	var data ItemActionRequest
+
+	if err := c.Bind(&data); err != nil {
+		return Err2Json(err.Error(), c, http.StatusBadRequest)
+	}
+
+	role := c.Get("role").(string)
+	if role != "admin" {
+		return Err2Json("only admins are permitted to do that", c, http.StatusUnauthorized)
+	}
+
+	itemId, err := uuid.Parse(data.ItemId)
+
+	if err != nil {
+		return Err2Json(err.Error(), c, http.StatusBadRequest)
+	}
+
+	adminId := uuid.MustParse(c.Get("userID").(string))
+
+	err = h.s.BanItem(itemId, adminId)
+	if err != nil {
+		return Err2Json(err.Error(), c, http.StatusInternalServerError)
+	}
+
+	return c.JSON(http.StatusCreated, map[string]interface{}{
+		"message": "ban was successful",
+	})
+}
+
+func (h *Handler) unbanItem(c echo.Context) error {
+	var data ItemActionRequest
+
+	if err := c.Bind(&data); err != nil {
+		return Err2Json(err.Error(), c, http.StatusBadRequest)
+	}
+
+	role := c.Get("role").(string)
+	if role != "admin" {
+		return Err2Json("only admins are permitted to do that", c, http.StatusUnauthorized)
+	}
+
+	itemId, err := uuid.Parse(data.ItemId)
+
+	if err != nil {
+		return Err2Json(err.Error(), c, http.StatusBadRequest)
+	}
+
+	adminId := uuid.MustParse(c.Get("userID").(string))
+
+	err = h.s.UnbanItem(itemId, adminId)
+	if err != nil {
+		return Err2Json(err.Error(), c, http.StatusInternalServerError)
+	}
+
+	return c.JSON(http.StatusCreated, map[string]interface{}{
+		"message": "ban was successful",
 	})
 }

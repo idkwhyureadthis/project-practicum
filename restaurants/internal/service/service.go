@@ -21,6 +21,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgtype"
+	"github.com/labstack/echo/v4"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -74,7 +75,7 @@ func (s *Service) LogIn(login, password string) (*tokens.Tokens, error) {
 	return tokens, nil
 }
 
-func (s *Service) Verify(token, expectedRole string) (*string, error) {
+func (s *Service) Verify(token, expectedRole string, c echo.Context) (*string, error) {
 	tokenInfo, err := tokens.Verify(token, s.secret)
 	if err != nil {
 		return nil, err
@@ -83,6 +84,8 @@ func (s *Service) Verify(token, expectedRole string) (*string, error) {
 	if tokenInfo.Type != expectedRole {
 		return nil, ErrWrongToken
 	}
+
+	c.Set("userID", tokenInfo.Id)
 	return &tokenInfo.Role, nil
 }
 
@@ -233,4 +236,59 @@ func (s *Service) CreateItem(sizes, prices []string, name, description string, i
 	}
 
 	return &uuid, nil
+}
+
+func (s *Service) GetItems(restaurantId uuid.UUID) (*[]generated.GetItemsRow, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+	defer cancel()
+	items, err := s.conn.GetItems(ctx, restaurantId)
+	if err != nil {
+		return nil, err
+	}
+	return &items, nil
+}
+
+func (s *Service) BanItem(itemID, adminId uuid.UUID) error {
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	restaurantId, err := s.conn.GetAdminRestaurant(ctx, adminId)
+	cancel()
+
+	if restaurantId == nil {
+		return ErrRestaurantNotFound
+	}
+
+	if err != nil {
+		return err
+	}
+
+	ctx, cancel = context.WithTimeout(context.Background(), time.Second)
+	err = s.conn.BanItem(ctx, generated.BanItemParams{
+		ItemID:       itemID,
+		RestaurantID: *restaurantId,
+	})
+	cancel()
+	return err
+}
+
+func (s *Service) UnbanItem(itemID, adminId uuid.UUID) error {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	restaurantId, err := s.conn.GetAdminRestaurant(ctx, adminId)
+	cancel()
+
+	if restaurantId == nil {
+		return ErrRestaurantNotFound
+	}
+
+	if err != nil {
+		return err
+	}
+
+	ctx, cancel = context.WithTimeout(context.Background(), time.Second)
+	err = s.conn.UnbanItem(ctx, generated.UnbanItemParams{
+		ItemID:       itemID,
+		RestaurantID: *restaurantId,
+	})
+	cancel()
+	return err
 }

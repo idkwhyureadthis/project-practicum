@@ -38,6 +38,22 @@ func (q *Queries) AddRestaurant(ctx context.Context, arg AddRestaurantParams) (u
 	return id, err
 }
 
+const banItem = `-- name: BanItem :exec
+INSERT INTO banned_items
+(item_id, restaurant_id)
+VALUES ($1, $2)
+`
+
+type BanItemParams struct {
+	ItemID       uuid.UUID `json:"item_id"`
+	RestaurantID uuid.UUID `json:"restaurant_id"`
+}
+
+func (q *Queries) BanItem(ctx context.Context, arg BanItemParams) error {
+	_, err := q.db.Exec(ctx, banItem, arg.ItemID, arg.RestaurantID)
+	return err
+}
+
 const checkAdmin = `-- name: CheckAdmin :one
 SELECT COUNT(*) FROM admins WHERE login = 'admin'
 `
@@ -119,6 +135,92 @@ func (q *Queries) GetAdmin(ctx context.Context, arg GetAdminParams) (Admin, erro
 	return i, err
 }
 
+const getAdminRestaurant = `-- name: GetAdminRestaurant :one
+SELECT restaurant_id from admins
+WHERE id = $1
+`
+
+func (q *Queries) GetAdminRestaurant(ctx context.Context, id uuid.UUID) (*uuid.UUID, error) {
+	row := q.db.QueryRow(ctx, getAdminRestaurant, id)
+	var restaurant_id *uuid.UUID
+	err := row.Scan(&restaurant_id)
+	return restaurant_id, err
+}
+
+const getBannedItems = `-- name: GetBannedItems :many
+SELECT item_id FROM banned_items
+WHERE restaurant_id = $1
+`
+
+func (q *Queries) GetBannedItems(ctx context.Context, restaurantID uuid.UUID) ([]uuid.UUID, error) {
+	rows, err := q.db.Query(ctx, getBannedItems, restaurantID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []uuid.UUID
+	for rows.Next() {
+		var item_id uuid.UUID
+		if err := rows.Scan(&item_id); err != nil {
+			return nil, err
+		}
+		items = append(items, item_id)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getItems = `-- name: GetItems :many
+SELECT 
+    i.id, i.name, i.description, i.sizes, i.prices, i.photos,
+    CASE 
+        WHEN bi.item_id IS NULL THEN true 
+        ELSE false 
+    END AS is_available
+FROM items i
+LEFT JOIN banned_items bi ON i.id = bi.item_id AND bi.restaurant_id = $1
+`
+
+type GetItemsRow struct {
+	ID          uuid.UUID `json:"id"`
+	Name        string    `json:"name"`
+	Description string    `json:"description"`
+	Sizes       []string  `json:"sizes"`
+	Prices      []float64 `json:"prices"`
+	Photos      []string  `json:"photos"`
+	IsAvailable bool      `json:"is_available"`
+}
+
+func (q *Queries) GetItems(ctx context.Context, restaurantID uuid.UUID) ([]GetItemsRow, error) {
+	rows, err := q.db.Query(ctx, getItems, restaurantID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetItemsRow
+	for rows.Next() {
+		var i GetItemsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Description,
+			&i.Sizes,
+			&i.Prices,
+			&i.Photos,
+			&i.IsAvailable,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getRefresh = `-- name: GetRefresh :one
 SELECT crypted_refresh from admins
 WHERE id = $1
@@ -169,6 +271,21 @@ VALUES ('admin', $1, TRUE)
 
 func (q *Queries) SetupAdmin(ctx context.Context, cryptedPassword string) error {
 	_, err := q.db.Exec(ctx, setupAdmin, cryptedPassword)
+	return err
+}
+
+const unbanItem = `-- name: UnbanItem :exec
+DELETE FROM banned_items
+WHERE item_id = $1 AND restaurant_id = $2
+`
+
+type UnbanItemParams struct {
+	ItemID       uuid.UUID `json:"item_id"`
+	RestaurantID uuid.UUID `json:"restaurant_id"`
+}
+
+func (q *Queries) UnbanItem(ctx context.Context, arg UnbanItemParams) error {
+	_, err := q.db.Exec(ctx, unbanItem, arg.ItemID, arg.RestaurantID)
 	return err
 }
 

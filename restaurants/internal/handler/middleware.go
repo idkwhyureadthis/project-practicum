@@ -16,7 +16,7 @@ func (h *Handler) authMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
 		}
 
 		token := bearerSplitted[1]
-		role, err := h.s.Verify(token, "access")
+		role, err := h.s.Verify(token, "access", c)
 		if err != nil {
 			return Err2Json("wrong auth header provided", c, http.StatusUnauthorized)
 		}

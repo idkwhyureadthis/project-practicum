@@ -42,3 +42,31 @@ RETURNING id;
 INSERT INTO items (name, description, sizes, prices, photos)
 VALUES ($1, $2, $3, $4, $5)
 RETURNING id;
+
+-- name: BanItem :exec
+INSERT INTO banned_items
+(item_id, restaurant_id)
+VALUES ($1, $2);
+
+-- name: UnbanItem :exec
+DELETE FROM banned_items
+WHERE item_id = $1 AND restaurant_id = $2;
+
+-- name: GetBannedItems :many
+SELECT item_id FROM banned_items
+WHERE restaurant_id = $1;
+
+
+-- name: GetAdminRestaurant :one
+SELECT restaurant_id from admins
+WHERE id = $1;
+
+-- name: GetItems :many
+SELECT 
+    i.*,
+    CASE 
+        WHEN bi.item_id IS NULL THEN true 
+        ELSE false 
+    END AS is_available
+FROM items i
+LEFT JOIN banned_items bi ON i.id = bi.item_id AND bi.restaurant_id = $1;
