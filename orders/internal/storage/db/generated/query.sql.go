@@ -9,6 +9,7 @@ import (
 	"context"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 const createUser = `-- name: CreateUser :one
@@ -57,20 +58,25 @@ func (q *Queries) GetRefresh(ctx context.Context, id uuid.UUID) (*string, error)
 }
 
 const getUserByID = `-- name: GetUserByID :one
-SELECT id, phone_number, crypted_password, name, mail, birthday, crypted_refresh, created_at FROM users WHERE id = $1
+SELECT name, phone_number, mail, birthday, created_at FROM users WHERE id = $1
 `
 
-func (q *Queries) GetUserByID(ctx context.Context, id uuid.UUID) (User, error) {
+type GetUserByIDRow struct {
+	Name        string           `json:"name"`
+	PhoneNumber string           `json:"phone_number"`
+	Mail        string           `json:"mail"`
+	Birthday    pgtype.Date      `json:"birthday"`
+	CreatedAt   pgtype.Timestamp `json:"created_at"`
+}
+
+func (q *Queries) GetUserByID(ctx context.Context, id uuid.UUID) (GetUserByIDRow, error) {
 	row := q.db.QueryRow(ctx, getUserByID, id)
-	var i User
+	var i GetUserByIDRow
 	err := row.Scan(
-		&i.ID,
-		&i.PhoneNumber,
-		&i.CryptedPassword,
 		&i.Name,
+		&i.PhoneNumber,
 		&i.Mail,
 		&i.Birthday,
-		&i.CryptedRefresh,
 		&i.CreatedAt,
 	)
 	return i, err

@@ -29,7 +29,7 @@ type Item struct {
 	Description string    `json:"description"`
 	Sizes       []string  `json:"sizes"`
 	Prices      []float64 `json:"prices"`
-	Photo       []byte    `json:"photo"`
+	Photos      []string  `json:"photos"`
 }
 
 type Order struct {

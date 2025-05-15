@@ -8,7 +8,7 @@ VALUES ($1, $2, $3, $4)
 RETURNING *;
 
 -- name: GetUserByID :one
-SELECT * FROM users WHERE id = $1;
+SELECT name, phone_number, mail, birthday, created_at FROM users WHERE id = $1;
 
 -- name: GetRefresh :one
 SELECT crypted_refresh FROM users WHERE id = $1;

@@ -4,9 +4,12 @@ import (
 	"net/http"
 
 	"github.com/google/uuid"
+	"github.com/idkwhyureadthis/project-practicum/orders/internal/storage/db/generated"
 	"github.com/labstack/echo/v4"
 )
 
+// AuthMiddleware godoc
+// @security BearerAuth
 func (h *Handler) AuthMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		authHeader := c.Request().Header.Get("Authorization")
@@ -45,6 +48,17 @@ func (h *Handler) AuthMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
 	}
 }
 
+// Refresh godoc
+// @Summary Обновить токены
+// @Description Обновляет access и refresh токены
+// @Tags Auth
+// @Accept json
+// @Produce json
+// @Param request body handler.RefreshRequest false "Refresh токен"
+// @Success 200 {object} TokensResponse
+// @Failure 400 {object} ErrorResponse
+// @Failure 401 {object} ErrorResponse
+// @Router /refresh [post]
 func (h *Handler) Refresh(c echo.Context) error {
 	cookie, err := c.Cookie("refresh")
 	if err != nil {
@@ -83,14 +97,44 @@ func (h *Handler) Refresh(c echo.Context) error {
 	newCookie.Path = "/"
 	c.SetCookie(newCookie)
 
-	return c.JSON(http.StatusOK, tokens)
+	return c.JSON(http.StatusOK, TokensResponse{
+		Access:  tokens.Access,
+		Refresh: tokens.Refresh,
+	})
 }
 
+// GetProfile godoc
+// @Summary Получить профиль
+// @Description Возвращает данные авторизованного пользователя
+// @Tags Users
+// @Security BearerAuth
+// @Produce json
+// @Success 200 {object} UserResponse
+// @Failure 401 {object} ErrorResponse
+// @Router /profile [get]
 func (h *Handler) GetProfile(c echo.Context) error {
-	user := c.Get("user")
-	return c.JSON(http.StatusOK, user)
+	userRaw := c.Get("user")
+	dbUser, ok := userRaw.(*generated.GetUserByIDRow)
+	if !ok {
+		return c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "invalid user data"})
+	}
+
+	return c.JSON(http.StatusOK, UserResponse{
+		PhoneNumber: dbUser.PhoneNumber,
+		Name:        dbUser.Name,
+		Mail:        dbUser.Mail,
+	})
 }
 
+// Logout godoc
+// @Summary Выйти из системы
+// @Description Инвалидирует refresh токен
+// @Tags Auth
+// @Security BearerAuth
+// @Produce json
+// @Success 200 {object} LogoutResponse
+// @Failure 500 {object} ErrorResponse
+// @Router /logout [post]
 func (h *Handler) Logout(c echo.Context) error {
 	userID, ok := c.Get("userID").(uuid.UUID)
 	if !ok {
@@ -114,7 +158,5 @@ func (h *Handler) Logout(c echo.Context) error {
 	cookie.Path = "/"
 	c.SetCookie(cookie)
 
-	return c.JSON(http.StatusOK, map[string]interface{}{
-		"message": "success logging out",
-	})
+	return c.JSON(http.StatusOK, LogoutResponse{Message: "success logging out"})
 }

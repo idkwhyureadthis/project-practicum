@@ -182,7 +182,7 @@ func (s *Service) Refresh(refreshToken string) (*tokens.Tokens, error) {
 	return newTokens, nil
 }
 
-func (s *Service) GetUserByID(id uuid.UUID) (*generated.User, error) {
+func (s *Service) GetUserByID(id uuid.UUID) (*generated.GetUserByIDRow, error) {
 	user, err := s.conn.GetUserByID(context.Background(), id)
 	if err == pgx.ErrNoRows {
 		return nil, ErrNotFound
