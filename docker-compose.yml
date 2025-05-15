@@ -22,13 +22,7 @@ services:
 
   migrations:
     build: migrations/
-    environment:
-      DBHOST: db
-      DBUSER: idkwhyureadthis
-      DBPASSWORD: 12345
-      DBSSL: disable
-      DBPORT: 5432
-      DBNAME: prac-project
+    env_file: migrations/.env
     depends_on:
       db:
         condition: service_healthy      
