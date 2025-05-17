@@ -1,11 +1,10 @@
 -- name: CheckAdmin :one
-SELECT COUNT(*) FROM admins WHERE login = 'admin';
+SELECT COUNT(*) FROM admins WHERE is_superadmin = true;
 
 -- name: SetupAdmin :exec
 INSERT INTO admins
 (login, crypted_password, is_superadmin)
-VALUES ('admin', $1, TRUE);
-
+VALUES ($1, $2, $3);
 
 -- name: GetAdmin :one
 SELECT * FROM admins

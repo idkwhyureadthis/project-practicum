@@ -34,3 +34,11 @@ type AuthResponse struct {
 type LogoutResponse struct {
 	Message string `json:"message"`
 }
+
+type OrderResponse struct {
+	ID           uuid.UUID `json:"id"`
+	DisplayedID  int32     `json:"displayed_id"`
+	RestaurantID uuid.UUID `json:"restaurant_id"`
+	TotalPrice   float64   `json:"total_price"`
+	Status       string    `json:"status"`
+}

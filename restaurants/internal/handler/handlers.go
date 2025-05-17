@@ -1,7 +1,10 @@
 package handler
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -10,6 +13,15 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
+// @Summary      Login
+// @Tags         Auth
+// @Accept       json
+// @Produce      json
+// @Param        credentials body LoginRequest true "User credentials"
+// @Success      200 {object} LoginRequest
+// @Failure      400 {object} map[string]string
+// @Failure      401 {object} map[string]string
+// @Router       /login [post]
 func (h *Handler) login(c echo.Context) error {
 	var data LoginRequest
 
@@ -33,6 +45,15 @@ func (h *Handler) login(c echo.Context) error {
 	return c.JSON(http.StatusOK, tokens)
 }
 
+// @Summary      Verify token
+// @Tags         Auth
+// @Accept       json
+// @Produce      json
+// @Param        token body VerifyRequest true "Access token"
+// @Success      200 {object} VerifyRequest
+// @Failure      400 {object} map[string]string
+// @Failure      401 {object} map[string]string
+// @Router       /verify [post]
 func (h *Handler) verify(c echo.Context) error {
 	var data VerifyRequest
 	if err := c.Bind(&data); err != nil {
@@ -48,6 +69,15 @@ func (h *Handler) verify(c echo.Context) error {
 	})
 }
 
+// @Summary      Refresh tokens
+// @Tags         Auth
+// @Accept       json
+// @Produce      json
+// @Param        refresh body GenerateRequest true "Refresh token"
+// @Success      200 {object} map[string]string
+// @Failure      400 {object} map[string]string
+// @Failure      401 {object} map[string]string
+// @Router       /refresh [post]
 func (h *Handler) refresh(c echo.Context) error {
 	var data GenerateRequest
 	if err := c.Bind(&data); err != nil {
@@ -61,6 +91,17 @@ func (h *Handler) refresh(c echo.Context) error {
 	return c.JSON(http.StatusOK, tokens)
 }
 
+// @Summary      Add restaurant
+// @Tags         Restaurants
+// @Security     BearerAuth
+// @Accept       json
+// @Produce      json
+// @Param        restaurant body AddRestaurantRequest true "Restaurant data"
+// @Success      201 {object} AddRestaurantRequest
+// @Failure      400 {object} map[string]string
+// @Failure      401 {object} map[string]string
+// @Failure      500 {object} map[string]string
+// @Router       /restaurants [post]
 func (h *Handler) addRestaurant(c echo.Context) error {
 	var data AddRestaurantRequest
 	role := c.Get("role")
@@ -83,6 +124,12 @@ func (h *Handler) addRestaurant(c echo.Context) error {
 	})
 }
 
+// @Summary      Get restaurants
+// @Tags         Restaurants
+// @Produce      json
+// @Success      200 {array} map[string]string
+// @Failure      500 {object} map[string]string
+// @Router       /restaurants [get]
 func (h *Handler) getRestaurants(c echo.Context) error {
 	restaurants, err := h.s.GetRestaurants()
 	if err != nil {
@@ -91,6 +138,18 @@ func (h *Handler) getRestaurants(c echo.Context) error {
 	return c.JSON(http.StatusOK, restaurants)
 }
 
+// @Summary      Create admin
+// @Tags         Admins
+// @Security     BearerAuth
+// @Accept       json
+// @Produce      json
+// @Param        admin body CreateAdminRequest true "Admin data"
+// @Success      201 {object} CreateAdminRequest
+// @Failure      400 {object} map[string]string
+// @Failure      401 {object} map[string]string
+// @Failure      409 {object} map[string]string
+// @Failure      500 {object} map[string]string
+// @Router       /admins [post]
 func (h *Handler) createAdmin(c echo.Context) error {
 	var data CreateAdminRequest
 
@@ -121,6 +180,21 @@ func (h *Handler) createAdmin(c echo.Context) error {
 	}
 }
 
+// @Summary      Add item
+// @Tags         Items
+// @Security     BearerAuth
+// @Accept       multipart/form-data
+// @Produce      json
+// @Param        name formData string true "Item name"
+// @Param        description formData string true "Description"
+// @Param        sizes formData []string true "Sizes"
+// @Param        prices formData []string true "Prices"
+// @Param        images formData file true "Images"
+// @Success      201 {object} map[string]string
+// @Failure      400 {object} map[string]string
+// @Failure      401 {object} map[string]string
+// @Failure      500 {object} map[string]string
+// @Router       /items [post]
 func (h *Handler) addItem(c echo.Context) error {
 	role := c.Get("role")
 	if role.(string) != "superadmin" {
@@ -154,6 +228,14 @@ func (h *Handler) addItem(c echo.Context) error {
 	})
 }
 
+// @Summary      Get items
+// @Tags         Items
+// @Produce      json
+// @Param        restaurant_id query string true "Restaurant ID"
+// @Success      200 {array} map[string]string
+// @Failure      400 {object} map[string]string
+// @Failure      500 {object} map[string]string
+// @Router       /items [get]
 func (h *Handler) getItems(c echo.Context) error {
 	restaurantId := c.QueryParam("restaurant_id")
 
@@ -172,6 +254,17 @@ func (h *Handler) getItems(c echo.Context) error {
 	return c.JSON(http.StatusOK, *items)
 }
 
+// @Summary      Ban item
+// @Tags         Items
+// @Security     BearerAuth
+// @Accept       json
+// @Produce      json
+// @Param        item body ItemActionRequest true "Item to ban"
+// @Success      201 {object} map[string]string
+// @Failure      400 {object} map[string]string
+// @Failure      401 {object} map[string]string
+// @Failure      500 {object} map[string]string
+// @Router       /items/ban [post]
 func (h *Handler) banItem(c echo.Context) error {
 	var data ItemActionRequest
 
@@ -202,6 +295,17 @@ func (h *Handler) banItem(c echo.Context) error {
 	})
 }
 
+// @Summary      Unban item
+// @Tags         Items
+// @Security     BearerAuth
+// @Accept       json
+// @Produce      json
+// @Param        item body ItemActionRequest true "Item to unban"
+// @Success      201 {object} map[string]string
+// @Failure      400 {object} map[string]string
+// @Failure      401 {object} map[string]string
+// @Failure      500 {object} map[string]string
+// @Router       /items/unban [post]
 func (h *Handler) unbanItem(c echo.Context) error {
 	var data ItemActionRequest
 
@@ -229,5 +333,48 @@ func (h *Handler) unbanItem(c echo.Context) error {
 
 	return c.JSON(http.StatusCreated, map[string]interface{}{
 		"message": "ban was successful",
+	})
+}
+
+// setupSuperadmin godoc
+// @Summary      Initial setup of a superadmin
+// @Description  Creates a default superadmin with login "admin" and custom password
+// @Tags         auth
+// @Accept       json
+// @Produce      json
+// @Param        password body string true "Superadmin password"
+// @Success      200 {object} map[string]string
+// @Failure      400 {object} map[string]string
+// @Failure      500 {object} map[string]string
+// @Router       /setup-superadmin [post]
+func (h *Handler) setupSuperadmin(c echo.Context) error {
+	var req struct {
+		Password string `json:"password"`
+	}
+	if err := c.Bind(&req); err != nil || req.Password == "" {
+		return c.JSON(http.StatusBadRequest, echo.Map{"error": "invalid password"})
+	}
+
+	count, err := h.s.GetAdminsCount()
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, echo.Map{"error": "db error"})
+	}
+	if count > 0 {
+		fmt.Println("Debug: count =", count)
+		return c.JSON(http.StatusBadRequest, echo.Map{"error": "superadmin already exists"})
+	}
+
+	hsh := sha256.New()
+	hsh.Write([]byte(req.Password))
+	hashedPassword := hex.EncodeToString(hsh.Sum(nil))
+
+	err = h.s.SetupAdmin("admin", hashedPassword, true)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, echo.Map{"error": "failed to create superadmin"})
+	}
+
+	return c.JSON(http.StatusOK, echo.Map{
+		"message": "superadmin created",
+		"login":   "admin",
 	})
 }

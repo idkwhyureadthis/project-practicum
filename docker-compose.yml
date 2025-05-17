@@ -3,14 +3,14 @@ version: '3'
 services:
 
   db:
-    image: postgres:16
+    image: postgres:17
     environment:
-      POSTGRES_USER: idkwhyureadthis
-      POSTGRES_PASSWORD: 12345
-      POSTGRES_DB: prac-project
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: qweasdzxc123
+      POSTGRES_DB: swag
 
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U idkwhyureadthis -d prac-project"]
+      test: ["CMD-SHELL", "pg_isready -U postgres -d swag"]
       interval: 5s
       timeout: 5s
       retries: 5

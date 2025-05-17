@@ -19,14 +19,21 @@ func SetupConnection(connUrl, adminPass string) *generated.Queries {
 		log.Fatal(err)
 	}
 	sqlcConn := generated.New(conn)
-	id, err := sqlcConn.CheckAdmin(context.Background())
+	count, err := sqlcConn.CheckAdmin(context.Background())
 	if err != nil {
 		log.Fatal(err)
 	}
-	if id == 0 {
+	if count == 0 {
 		h := sha256.New()
 		h.Write([]byte(adminPass))
-		err = sqlcConn.SetupAdmin(context.Background(), hex.EncodeToString(h.Sum(nil)))
+		hashedPassword := hex.EncodeToString(h.Sum(nil))
+
+		params := generated.SetupAdminParams{
+			Login:           "admin",
+			CryptedPassword: hashedPassword,
+			IsSuperadmin:    true,
+		}
+		err = sqlcConn.SetupAdmin(context.Background(), params)
 		if err != nil {
 			log.Fatal(err)
 		}

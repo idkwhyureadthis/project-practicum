@@ -54,6 +54,7 @@ func (h *Handler) AuthMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
 // @Tags Auth
 // @Accept json
 // @Produce json
+// @Security BearerAuth
 // @Param request body handler.RefreshRequest false "Refresh токен"
 // @Success 200 {object} TokensResponse
 // @Failure 400 {object} ErrorResponse

@@ -12,6 +12,37 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const createOrder = `-- name: CreateOrder :one
+INSERT INTO orders (displayed_id, restaurant_id, total_price, status)
+VALUES ($1, $2, $3, $4)
+RETURNING id, displayed_id, restaurant_id, total_price, status
+`
+
+type CreateOrderParams struct {
+	DisplayedID  int32      `json:"displayed_id"`
+	RestaurantID *uuid.UUID `json:"restaurant_id"`
+	TotalPrice   float64    `json:"total_price"`
+	Status       string     `json:"status"`
+}
+
+func (q *Queries) CreateOrder(ctx context.Context, arg CreateOrderParams) (Order, error) {
+	row := q.db.QueryRow(ctx, createOrder,
+		arg.DisplayedID,
+		arg.RestaurantID,
+		arg.TotalPrice,
+		arg.Status,
+	)
+	var i Order
+	err := row.Scan(
+		&i.ID,
+		&i.DisplayedID,
+		&i.RestaurantID,
+		&i.TotalPrice,
+		&i.Status,
+	)
+	return i, err
+}
+
 const createUser = `-- name: CreateUser :one
 INSERT INTO users (phone_number, name, crypted_password, mail)
 VALUES ($1, $2, $3, $4)
@@ -42,6 +73,66 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 		&i.Birthday,
 		&i.CryptedRefresh,
 		&i.CreatedAt,
+	)
+	return i, err
+}
+
+const deleteOrder = `-- name: DeleteOrder :exec
+DELETE FROM orders WHERE id = $1
+`
+
+func (q *Queries) DeleteOrder(ctx context.Context, id uuid.UUID) error {
+	_, err := q.db.Exec(ctx, deleteOrder, id)
+	return err
+}
+
+const getAllOrders = `-- name: GetAllOrders :many
+SELECT id, displayed_id, restaurant_id, total_price, status
+FROM orders
+ORDER BY displayed_id
+`
+
+func (q *Queries) GetAllOrders(ctx context.Context) ([]Order, error) {
+	rows, err := q.db.Query(ctx, getAllOrders)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Order
+	for rows.Next() {
+		var i Order
+		if err := rows.Scan(
+			&i.ID,
+			&i.DisplayedID,
+			&i.RestaurantID,
+			&i.TotalPrice,
+			&i.Status,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getOrderByID = `-- name: GetOrderByID :one
+SELECT id, displayed_id, restaurant_id, total_price, status
+FROM orders
+WHERE id = $1
+`
+
+func (q *Queries) GetOrderByID(ctx context.Context, id uuid.UUID) (Order, error) {
+	row := q.db.QueryRow(ctx, getOrderByID, id)
+	var i Order
+	err := row.Scan(
+		&i.ID,
+		&i.DisplayedID,
+		&i.RestaurantID,
+		&i.TotalPrice,
+		&i.Status,
 	)
 	return i, err
 }
