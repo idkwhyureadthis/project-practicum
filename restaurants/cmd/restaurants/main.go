@@ -11,7 +11,6 @@ func main() {
 	godotenv.Load()
 	port := os.Getenv("PORT")
 	connUrl := os.Getenv("DB_URL")
-	adminPass := os.Getenv("ADMIN_PASS")
 	secretKey := os.Getenv("JWT_SECRET")
 	app := app.New(connUrl, adminPass, secretKey)
 	app.Run(port)

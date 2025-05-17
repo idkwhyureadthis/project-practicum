@@ -46,10 +46,10 @@ func (h *Handler) Run(port string) error {
 	return h.e.Start(port)
 }
 
-func New(connUrl, adminPass, secret string) *Handler {
+func New(connUrl, secret string) *Handler {
 	handler := Handler{}
 	handler.e = echo.New()
-	handler.s = service.New(connUrl, adminPass, secret)
+	handler.s = service.New(connUrl, secret)
 	handler.setup()
 	return &handler
 }

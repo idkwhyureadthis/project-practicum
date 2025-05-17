@@ -30,9 +30,9 @@ type Service struct {
 	secret []byte
 }
 
-func New(connUrl, adminPass, secret string) *Service {
+func New(connUrl, secret string) *Service {
 	service := Service{}
-	service.conn = db.SetupConnection(connUrl, adminPass)
+	service.conn = db.SetupConnection(connUrl)
 	service.secret = []byte(secret)
 	return &service
 }
