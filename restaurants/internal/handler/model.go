@@ -3,6 +3,7 @@ package handler
 import (
 	"github.com/idkwhyureadthis/project-practicum/restaurants/internal/service"
 	"github.com/labstack/echo/v4"
+	echoSwagger "github.com/swaggo/echo-swagger"
 )
 
 type VerifyRequest struct {
@@ -36,6 +37,11 @@ type ItemActionRequest struct {
 	ItemId string `json:"item_id"`
 }
 
+type SetupSuperadminRequest struct {
+	Login    string `json:"login" example:"admin"`
+	Password string `json:"password" example:"strongpassword123"`
+}
+
 type Handler struct {
 	e      *echo.Echo
 	s      *service.Service
@@ -55,9 +61,11 @@ func New(connUrl, secret string) *Handler {
 }
 
 func (h *Handler) setup() {
+	h.e.GET("/swagger/*", echoSwagger.WrapHandler)
 	h.e.POST("/login", h.login)
 	h.e.POST("/refresh", h.refresh)
 	h.e.POST("/verify", h.verify)
+	h.e.POST("/setup-superadmin", h.setupSuperadmin)
 	items := h.e.Group("/items")
 	admins := h.e.Group("/admins")
 	restaurants := h.e.Group("/restaurants")

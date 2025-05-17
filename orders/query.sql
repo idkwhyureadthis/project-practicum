@@ -15,3 +15,21 @@ SELECT crypted_refresh FROM users WHERE id = $1;
 
 -- name: UpdateRefresh :exec
 UPDATE users SET crypted_refresh = $2 WHERE id = $1;
+
+-- name: CreateOrder :one
+INSERT INTO orders (displayed_id, restaurant_id, total_price, status)
+VALUES ($1, $2, $3, $4)
+RETURNING *;
+
+-- name: GetOrderByID :one
+SELECT id, displayed_id, restaurant_id, total_price, status
+FROM orders
+WHERE id = $1;
+
+-- name: GetAllOrders :many
+SELECT id, displayed_id, restaurant_id, total_price, status
+FROM orders
+ORDER BY displayed_id;
+
+-- name: DeleteOrder :exec
+DELETE FROM orders WHERE id = $1;

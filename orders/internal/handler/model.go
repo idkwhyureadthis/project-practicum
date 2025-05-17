@@ -7,19 +7,6 @@ import (
 	echoSwagger "github.com/swaggo/echo-swagger"
 )
 
-// @title Restaurant & Orders API
-// @version 1.0
-// @description API для управления ресторанами и заказами
-// @termsOfService http://swagger.io/terms/
-// @contact.name API Support
-// @contact.email support@project.ru
-// @host localhost:8081
-// @BasePath /
-// @securityDefinitions.apikey BearerAuth
-// @in header
-// @name Authorization
-// @description Type "Bearer" followed by a space and JWT token
-
 type Handler struct {
 	e      *echo.Echo
 	s      *service.Service
@@ -55,4 +42,9 @@ func (h *Handler) SetupHandlers() {
 
 	auth.GET("/profile", h.GetProfile)
 	auth.POST("/logout", h.Logout)
+	auth.POST("/orders", h.CreateOrder)
+	auth.GET("/orders/:id", h.GetOrderByID)
+	auth.GET("/orders", h.GetAllOrders)
+	auth.DELETE("/orders/:id", h.DeleteOrder)
+
 }

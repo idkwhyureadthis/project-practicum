@@ -197,3 +197,39 @@ func (s *Service) InvalidateRefreshToken(id uuid.UUID) error {
 		CryptedRefresh: &emptyString,
 	})
 }
+
+func (s *Service) CreateOrder(displayedID int32, restaurantID *uuid.UUID, totalPrice float64) (*generated.Order, error) {
+	order, err := s.conn.CreateOrder(context.Background(), generated.CreateOrderParams{
+		DisplayedID:  displayedID,
+		RestaurantID: restaurantID,
+		TotalPrice:   totalPrice,
+		Status:       "pending",
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &order, nil
+}
+
+func (s *Service) GetOrderByID(id uuid.UUID) (*generated.Order, error) {
+	order, err := s.conn.GetOrderByID(context.Background(), id)
+	if err == pgx.ErrNoRows {
+		return nil, ErrNotFound
+	}
+	if err != nil {
+		return nil, err
+	}
+	return &order, nil
+}
+
+func (s *Service) GetAllOrders() ([]generated.Order, error) {
+	orders, err := s.conn.GetAllOrders(context.Background())
+	if err != nil {
+		return nil, err
+	}
+	return orders, nil
+}
+
+func (s *Service) DeleteOrder(id uuid.UUID) error {
+	return s.conn.DeleteOrder(context.Background(), id)
+}

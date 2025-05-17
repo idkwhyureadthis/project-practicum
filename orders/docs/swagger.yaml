@@ -7,6 +7,15 @@ definitions:
       user:
         $ref: '#/definitions/handler.UserResponse'
     type: object
+  handler.CreateOrderRequest:
+    properties:
+      displayed_id:
+        type: integer
+      restaurant_id:
+        type: string
+      total_price:
+        type: number
+    type: object
   handler.ErrorResponse:
     properties:
       error:
@@ -25,6 +34,19 @@ definitions:
     properties:
       message:
         type: string
+    type: object
+  handler.OrderResponse:
+    properties:
+      displayed_id:
+        type: integer
+      id:
+        type: string
+      restaurant_id:
+        type: string
+      status:
+        type: string
+      total_price:
+        type: number
     type: object
   handler.RefreshRequest:
     properties:
@@ -71,8 +93,11 @@ definitions:
     type: object
 host: localhost:8081
 info:
-  contact: {}
+  contact:
+    email: support@project.ru
+    name: API Support
   description: API для управления ресторанами и заказами
+  termsOfService: http://swagger.io/terms/
   title: Restaurant & Orders API
   version: "1.0"
 paths:
@@ -129,6 +154,38 @@ paths:
       summary: Выйти из системы
       tags:
       - Auth
+  /orders:
+    post:
+      consumes:
+      - application/json
+      description: Создание нового заказа в ресторане
+      parameters:
+      - description: Параметры заказа
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handler.CreateOrderRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handler.OrderResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Создать заказ
+      tags:
+      - Orders
   /profile:
     get:
       description: Возвращает данные авторизованного пользователя
@@ -174,6 +231,8 @@ paths:
           description: Unauthorized
           schema:
             $ref: '#/definitions/handler.ErrorResponse'
+      security:
+      - BearerAuth: []
       summary: Обновить токены
       tags:
       - Auth
@@ -213,6 +272,7 @@ paths:
       - Auth
 securityDefinitions:
   BearerAuth:
+    description: Type "Bearer" followed by a space and JWT token
     in: header
     name: Authorization
     type: apiKey
