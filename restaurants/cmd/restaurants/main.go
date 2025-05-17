@@ -23,6 +23,6 @@ func main() {
 	port := os.Getenv("PORT")
 	connUrl := os.Getenv("DB_URL")
 	secretKey := os.Getenv("JWT_SECRET")
-	app := app.New(connUrl, adminPass, secretKey)
+	app := app.New(connUrl, secretKey)
 	app.Run(port)
 }
