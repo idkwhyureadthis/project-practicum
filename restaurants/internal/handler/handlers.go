@@ -1,10 +1,7 @@
 package handler
 
 import (
-	"crypto/sha256"
-	"encoding/hex"
 	"errors"
-	"fmt"
 	"net/http"
 	"time"
 
@@ -333,48 +330,5 @@ func (h *Handler) unbanItem(c echo.Context) error {
 
 	return c.JSON(http.StatusCreated, map[string]interface{}{
 		"message": "ban was successful",
-	})
-}
-
-// setupSuperadmin godoc
-// @Summary      Initial setup of a superadmin
-// @Description  Creates a default superadmin with login "admin" and custom password
-// @Tags         auth
-// @Accept       json
-// @Produce      json
-// @Param        password body string true "Superadmin password"
-// @Success      200 {object} map[string]string
-// @Failure      400 {object} map[string]string
-// @Failure      500 {object} map[string]string
-// @Router       /setup-superadmin [post]
-func (h *Handler) setupSuperadmin(c echo.Context) error {
-	var req struct {
-		Password string `json:"password"`
-	}
-	if err := c.Bind(&req); err != nil || req.Password == "" {
-		return c.JSON(http.StatusBadRequest, echo.Map{"error": "invalid password"})
-	}
-
-	count, err := h.s.GetAdminsCount()
-	if err != nil {
-		return c.JSON(http.StatusInternalServerError, echo.Map{"error": "db error"})
-	}
-	if count > 0 {
-		fmt.Println("Debug: count =", count)
-		return c.JSON(http.StatusBadRequest, echo.Map{"error": "superadmin already exists"})
-	}
-
-	hsh := sha256.New()
-	hsh.Write([]byte(req.Password))
-	hashedPassword := hex.EncodeToString(hsh.Sum(nil))
-
-	err = h.s.SetupAdmin("admin", hashedPassword, true)
-	if err != nil {
-		return c.JSON(http.StatusInternalServerError, echo.Map{"error": "failed to create superadmin"})
-	}
-
-	return c.JSON(http.StatusOK, echo.Map{
-		"message": "superadmin created",
-		"login":   "admin",
 	})
 }

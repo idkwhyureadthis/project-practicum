@@ -415,42 +415,6 @@ paths:
       summary: Add restaurant
       tags:
       - Restaurants
-  /setup-superadmin:
-    post:
-      consumes:
-      - application/json
-      description: Creates a default superadmin with login "admin" and custom password
-      parameters:
-      - description: Superadmin password
-        in: body
-        name: password
-        required: true
-        schema:
-          type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "400":
-          description: Bad Request
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "500":
-          description: Internal Server Error
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-      summary: Initial setup of a superadmin
-      tags:
-      - auth
   /verify:
     post:
       consumes:

@@ -65,7 +65,6 @@ func (h *Handler) setup() {
 	h.e.POST("/login", h.login)
 	h.e.POST("/refresh", h.refresh)
 	h.e.POST("/verify", h.verify)
-	h.e.POST("/setup-superadmin", h.setupSuperadmin)
 	items := h.e.Group("/items")
 	admins := h.e.Group("/admins")
 	restaurants := h.e.Group("/restaurants")

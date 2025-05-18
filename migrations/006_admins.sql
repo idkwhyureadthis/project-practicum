@@ -11,7 +11,7 @@ CREATE TABLE admins(
 );
 
 INSERT INTO admins(login, crypted_password, is_superadmin)
-VALUES ("admin", encode(sha256("12345"::bytea), 'hex'), true)
+VALUES ('admin', encode(sha256('12345'::bytea), 'hex'), TRUE);
 
 -- +goose StatementEnd
 
