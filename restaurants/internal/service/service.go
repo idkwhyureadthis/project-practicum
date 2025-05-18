@@ -292,15 +292,3 @@ func (s *Service) UnbanItem(itemID, adminId uuid.UUID) error {
 	cancel()
 	return err
 }
-
-func (s *Service) GetAdminsCount() (int64, error) {
-	return s.conn.CheckAdmin(context.Background())
-}
-
-func (s *Service) SetupAdmin(login, cryptedPassword string, isSuperadmin bool) error {
-	return s.conn.SetupAdmin(context.Background(), generated.SetupAdminParams{
-		Login:           login,
-		CryptedPassword: cryptedPassword,
-		IsSuperadmin:    isSuperadmin,
-	})
-}

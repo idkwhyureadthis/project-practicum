@@ -54,17 +54,6 @@ func (q *Queries) BanItem(ctx context.Context, arg BanItemParams) error {
 	return err
 }
 
-const checkAdmin = `-- name: CheckAdmin :one
-SELECT COUNT(*) FROM admins WHERE is_superadmin = true
-`
-
-func (q *Queries) CheckAdmin(ctx context.Context) (int64, error) {
-	row := q.db.QueryRow(ctx, checkAdmin)
-	var count int64
-	err := row.Scan(&count)
-	return count, err
-}
-
 const createAdmin = `-- name: CreateAdmin :one
 INSERT INTO admins (login, crypted_password, restaurant_id)
 VALUES ($1, $2, $3)
@@ -261,23 +250,6 @@ func (q *Queries) GetRestaurants(ctx context.Context) ([]Restaurant, error) {
 		return nil, err
 	}
 	return items, nil
-}
-
-const setupAdmin = `-- name: SetupAdmin :exec
-INSERT INTO admins
-(login, crypted_password, is_superadmin)
-VALUES ($1, $2, $3)
-`
-
-type SetupAdminParams struct {
-	Login           string `json:"login"`
-	CryptedPassword string `json:"crypted_password"`
-	IsSuperadmin    bool   `json:"is_superadmin"`
-}
-
-func (q *Queries) SetupAdmin(ctx context.Context, arg SetupAdminParams) error {
-	_, err := q.db.Exec(ctx, setupAdmin, arg.Login, arg.CryptedPassword, arg.IsSuperadmin)
-	return err
 }
 
 const unbanItem = `-- name: UnbanItem :exec
