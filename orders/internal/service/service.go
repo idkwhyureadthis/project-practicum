@@ -198,12 +198,13 @@ func (s *Service) InvalidateRefreshToken(id uuid.UUID) error {
 	})
 }
 
-func (s *Service) CreateOrder(displayedID int32, restaurantID *uuid.UUID, totalPrice float64) (*generated.Order, error) {
+func (s *Service) CreateOrder(displayedID int32, restaurantID *uuid.UUID, totalPrice float64, userID uuid.UUID) (*generated.Order, error) {
 	order, err := s.conn.CreateOrder(context.Background(), generated.CreateOrderParams{
 		DisplayedID:  displayedID,
 		RestaurantID: restaurantID,
 		TotalPrice:   totalPrice,
 		Status:       "pending",
+		UserID:       userID,
 	})
 	if err != nil {
 		return nil, err
@@ -211,8 +212,11 @@ func (s *Service) CreateOrder(displayedID int32, restaurantID *uuid.UUID, totalP
 	return &order, nil
 }
 
-func (s *Service) GetOrderByID(id uuid.UUID) (*generated.Order, error) {
-	order, err := s.conn.GetOrderByID(context.Background(), id)
+func (s *Service) GetOrderByID(id, userID uuid.UUID) (*generated.Order, error) {
+	order, err := s.conn.GetOrderByID(context.Background(), generated.GetOrderByIDParams{
+		ID:     id,
+		UserID: userID,
+	})
 	if err == pgx.ErrNoRows {
 		return nil, ErrNotFound
 	}
@@ -222,14 +226,13 @@ func (s *Service) GetOrderByID(id uuid.UUID) (*generated.Order, error) {
 	return &order, nil
 }
 
-func (s *Service) GetAllOrders() ([]generated.Order, error) {
-	orders, err := s.conn.GetAllOrders(context.Background())
-	if err != nil {
-		return nil, err
-	}
-	return orders, nil
+func (s *Service) GetAllOrders(userID uuid.UUID) ([]generated.Order, error) {
+	return s.conn.GetAllOrders(context.Background(), userID)
 }
 
-func (s *Service) DeleteOrder(id uuid.UUID) error {
-	return s.conn.DeleteOrder(context.Background(), id)
+func (s *Service) DeleteOrder(id, userID uuid.UUID) error {
+	return s.conn.DeleteOrder(context.Background(), generated.DeleteOrderParams{
+		ID:     id,
+		UserID: userID,
+	})
 }

@@ -13,9 +13,9 @@ import (
 )
 
 const createOrder = `-- name: CreateOrder :one
-INSERT INTO orders (displayed_id, restaurant_id, total_price, status)
-VALUES ($1, $2, $3, $4)
-RETURNING id, displayed_id, restaurant_id, total_price, status
+INSERT INTO orders (id, displayed_id, restaurant_id, total_price, status, user_id)
+VALUES (gen_random_uuid(), $1, $2, $3, $4, $5)
+RETURNING id, displayed_id, restaurant_id, total_price, status, user_id
 `
 
 type CreateOrderParams struct {
@@ -23,6 +23,7 @@ type CreateOrderParams struct {
 	RestaurantID *uuid.UUID `json:"restaurant_id"`
 	TotalPrice   float64    `json:"total_price"`
 	Status       string     `json:"status"`
+	UserID       uuid.UUID  `json:"user_id"`
 }
 
 func (q *Queries) CreateOrder(ctx context.Context, arg CreateOrderParams) (Order, error) {
@@ -31,6 +32,7 @@ func (q *Queries) CreateOrder(ctx context.Context, arg CreateOrderParams) (Order
 		arg.RestaurantID,
 		arg.TotalPrice,
 		arg.Status,
+		arg.UserID,
 	)
 	var i Order
 	err := row.Scan(
@@ -39,6 +41,7 @@ func (q *Queries) CreateOrder(ctx context.Context, arg CreateOrderParams) (Order
 		&i.RestaurantID,
 		&i.TotalPrice,
 		&i.Status,
+		&i.UserID,
 	)
 	return i, err
 }
@@ -78,22 +81,28 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 }
 
 const deleteOrder = `-- name: DeleteOrder :exec
-DELETE FROM orders WHERE id = $1
+DELETE FROM orders
+WHERE id = $1 AND user_id = $2
 `
 
-func (q *Queries) DeleteOrder(ctx context.Context, id uuid.UUID) error {
-	_, err := q.db.Exec(ctx, deleteOrder, id)
+type DeleteOrderParams struct {
+	ID     uuid.UUID `json:"id"`
+	UserID uuid.UUID `json:"user_id"`
+}
+
+func (q *Queries) DeleteOrder(ctx context.Context, arg DeleteOrderParams) error {
+	_, err := q.db.Exec(ctx, deleteOrder, arg.ID, arg.UserID)
 	return err
 }
 
 const getAllOrders = `-- name: GetAllOrders :many
-SELECT id, displayed_id, restaurant_id, total_price, status
-FROM orders
+SELECT id, displayed_id, restaurant_id, total_price, status, user_id FROM orders
+WHERE user_id = $1
 ORDER BY displayed_id
 `
 
-func (q *Queries) GetAllOrders(ctx context.Context) ([]Order, error) {
-	rows, err := q.db.Query(ctx, getAllOrders)
+func (q *Queries) GetAllOrders(ctx context.Context, userID uuid.UUID) ([]Order, error) {
+	rows, err := q.db.Query(ctx, getAllOrders, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -107,6 +116,7 @@ func (q *Queries) GetAllOrders(ctx context.Context) ([]Order, error) {
 			&i.RestaurantID,
 			&i.TotalPrice,
 			&i.Status,
+			&i.UserID,
 		); err != nil {
 			return nil, err
 		}
@@ -119,13 +129,17 @@ func (q *Queries) GetAllOrders(ctx context.Context) ([]Order, error) {
 }
 
 const getOrderByID = `-- name: GetOrderByID :one
-SELECT id, displayed_id, restaurant_id, total_price, status
-FROM orders
-WHERE id = $1
+SELECT id, displayed_id, restaurant_id, total_price, status, user_id FROM orders
+WHERE id = $1 AND user_id = $2
 `
 
-func (q *Queries) GetOrderByID(ctx context.Context, id uuid.UUID) (Order, error) {
-	row := q.db.QueryRow(ctx, getOrderByID, id)
+type GetOrderByIDParams struct {
+	ID     uuid.UUID `json:"id"`
+	UserID uuid.UUID `json:"user_id"`
+}
+
+func (q *Queries) GetOrderByID(ctx context.Context, arg GetOrderByIDParams) (Order, error) {
+	row := q.db.QueryRow(ctx, getOrderByID, arg.ID, arg.UserID)
 	var i Order
 	err := row.Scan(
 		&i.ID,
@@ -133,6 +147,7 @@ func (q *Queries) GetOrderByID(ctx context.Context, id uuid.UUID) (Order, error)
 		&i.RestaurantID,
 		&i.TotalPrice,
 		&i.Status,
+		&i.UserID,
 	)
 	return i, err
 }

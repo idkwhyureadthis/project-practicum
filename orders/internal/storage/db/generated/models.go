@@ -38,6 +38,7 @@ type Order struct {
 	RestaurantID *uuid.UUID `json:"restaurant_id"`
 	TotalPrice   float64    `json:"total_price"`
 	Status       string     `json:"status"`
+	UserID       uuid.UUID  `json:"user_id"`
 }
 
 type Restaurant struct {

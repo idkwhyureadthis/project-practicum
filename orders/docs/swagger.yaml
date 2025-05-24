@@ -155,6 +155,24 @@ paths:
       tags:
       - Auth
   /orders:
+    get:
+      description: Получает список всех заказов (без фильтрации по пользователю)
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/handler.OrderResponse'
+            type: array
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Получение всех заказов
+      tags:
+      - Orders
     post:
       consumes:
       - application/json
@@ -184,6 +202,65 @@ paths:
       security:
       - BearerAuth: []
       summary: Создать заказ
+      tags:
+      - Orders
+  /orders/{id}:
+    delete:
+      description: Удаляет заказ по его UUID
+      parameters:
+      - description: UUID заказа
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "204":
+          description: Заказ удалён
+        "400":
+          description: Некорректный UUID
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+        "404":
+          description: Заказ не найден
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Удаление заказа
+      tags:
+      - Orders
+    get:
+      description: Получает заказ по его UUID
+      parameters:
+      - description: UUID заказа
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handler.OrderResponse'
+        "400":
+          description: Некорректный UUID
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+        "404":
+          description: Заказ не найден
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Получение заказа
       tags:
       - Orders
   /profile:

@@ -17,19 +17,19 @@ SELECT crypted_refresh FROM users WHERE id = $1;
 UPDATE users SET crypted_refresh = $2 WHERE id = $1;
 
 -- name: CreateOrder :one
-INSERT INTO orders (displayed_id, restaurant_id, total_price, status)
-VALUES ($1, $2, $3, $4)
+INSERT INTO orders (id, displayed_id, restaurant_id, total_price, status, user_id)
+VALUES (gen_random_uuid(), $1, $2, $3, $4, $5)
 RETURNING *;
 
 -- name: GetOrderByID :one
-SELECT id, displayed_id, restaurant_id, total_price, status
-FROM orders
-WHERE id = $1;
+SELECT * FROM orders
+WHERE id = $1 AND user_id = $2;
 
 -- name: GetAllOrders :many
-SELECT id, displayed_id, restaurant_id, total_price, status
-FROM orders
+SELECT * FROM orders
+WHERE user_id = $1
 ORDER BY displayed_id;
 
 -- name: DeleteOrder :exec
-DELETE FROM orders WHERE id = $1;
+DELETE FROM orders
+WHERE id = $1 AND user_id = $2;

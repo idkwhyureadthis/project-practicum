@@ -117,25 +117,39 @@ func (h *Handler) SignUp(c echo.Context) error {
 	})
 }
 
+func GetUserIDFromContext(c echo.Context) (uuid.UUID, error) {
+	uid, ok := c.Get("userID").(uuid.UUID)
+	if !ok {
+		return uuid.Nil, errors.New("userID not found in context")
+	}
+	return uid, nil
+}
+
 // CreateOrder godoc
 // @Summary Создать заказ
 // @Description Создание нового заказа в ресторане
 // @Tags Orders
+// @Security BearerAuth
 // @Accept json
 // @Produce json
 // @Param request body CreateOrderRequest true "Параметры заказа"
 // @Success 200 {object} OrderResponse
 // @Failure 400 {object} ErrorResponse
 // @Failure 500 {object} ErrorResponse
-// @Security BearerAuth
 // @Router /orders [post]
 func (h *Handler) CreateOrder(c echo.Context) error {
 	var req CreateOrderRequest
+
 	if err := c.Bind(&req); err != nil {
-		return c.JSON(http.StatusBadRequest, ErrorResponse{Error: "Неверный формат данных"})
+		return c.JSON(http.StatusBadRequest, ErrorResponse{Error: "invalid request"})
 	}
 
-	order, err := h.s.CreateOrder(req.DisplayedID, &req.RestaurantID, req.TotalPrice)
+	userID, err := GetUserIDFromContext(c)
+	if err != nil {
+		return c.JSON(http.StatusUnauthorized, ErrorResponse{Error: "unauthorized"})
+	}
+
+	order, _ := h.s.CreateOrder(req.DisplayedID, &req.RestaurantID, req.TotalPrice, userID)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, ErrorResponse{Error: err.Error()})
 	}
@@ -151,19 +165,35 @@ func (h *Handler) CreateOrder(c echo.Context) error {
 	return c.JSON(http.StatusOK, resp)
 }
 
+// GetOrderByID получает заказ по UUID
+// @Summary Получение заказа
+// @Tags Orders
+// @Security BearerAuth
+// @Description Получает заказ по его UUID
+// @Param id path string true "UUID заказа"
+// @Success 200 {object} OrderResponse
+// @Failure 400 {object} ErrorResponse "Некорректный UUID"
+// @Failure 404 {object} ErrorResponse "Заказ не найден"
+// @Failure 500 {object} ErrorResponse "Внутренняя ошибка сервера"
+// @Router /orders/{id} [get]
 func (h *Handler) GetOrderByID(c echo.Context) error {
+	userID, err := GetUserIDFromContext(c)
+	if err != nil {
+		return c.JSON(http.StatusUnauthorized, ErrorResponse{Error: "unauthorized"})
+	}
+
 	orderIDStr := c.Param("id")
 	orderID, err := uuid.Parse(orderIDStr)
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, ErrorResponse{Error: "Некорректный UUID заказа"})
 	}
 
-	order, err := h.s.GetOrderByID(orderID)
+	order, err := h.s.GetOrderByID(orderID, userID)
 
-	if err == nil {
-		return c.JSON(http.StatusNotFound, ErrorResponse{Error: "Заказ не найден"})
-	}
 	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return c.JSON(http.StatusNotFound, ErrorResponse{Error: "Заказ не найден"})
+		}
 		return c.JSON(http.StatusInternalServerError, ErrorResponse{Error: err.Error()})
 	}
 
@@ -177,8 +207,22 @@ func (h *Handler) GetOrderByID(c echo.Context) error {
 	return c.JSON(http.StatusOK, resp)
 }
 
+// GetAllOrders получает все заказы
+// @Summary Получение всех заказов
+// @Tags Orders
+// @Security BearerAuth
+// @Description Получает список всех заказов (без фильтрации по пользователю)
+// @Success 200 {array} OrderResponse
+// @Failure 500 {object} ErrorResponse "Внутренняя ошибка сервера"
+// @Router /orders [get]
 func (h *Handler) GetAllOrders(c echo.Context) error {
-	orders, err := h.s.GetAllOrders()
+	userID, err := GetUserIDFromContext(c)
+	if err != nil {
+		return c.JSON(http.StatusUnauthorized, ErrorResponse{Error: "unauthorized"})
+	}
+
+	orders, err := h.s.GetAllOrders(userID)
+
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, ErrorResponse{Error: err.Error()})
 	}
@@ -197,15 +241,29 @@ func (h *Handler) GetAllOrders(c echo.Context) error {
 	return c.JSON(http.StatusOK, resp)
 }
 
+// DeleteOrder удаляет заказ по UUID
+// @Summary Удаление заказа
+// @Tags Orders
+// @Security BearerAuth
+// @Description Удаляет заказ по его UUID
+// @Param id path string true "UUID заказа"
+// @Success 204 "Заказ удалён"
+// @Failure 400 {object} ErrorResponse "Некорректный UUID"
+// @Failure 404 {object} ErrorResponse "Заказ не найден"
+// @Failure 500 {object} ErrorResponse "Внутренняя ошибка сервера"
+// @Router /orders/{id} [delete]
 func (h *Handler) DeleteOrder(c echo.Context) error {
-	idParam := c.Param("id")
+	userID, err := GetUserIDFromContext(c)
+	if err != nil {
+		return c.JSON(http.StatusUnauthorized, ErrorResponse{Error: "unauthorized"})
+	}
 
-	id, err := uuid.Parse(idParam)
+	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, ErrorResponse{Error: "invalid order id"})
 	}
 
-	err = h.s.DeleteOrder(id)
+	err = h.s.DeleteOrder(id, userID)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return c.JSON(http.StatusNotFound, ErrorResponse{Error: "order not found"})
