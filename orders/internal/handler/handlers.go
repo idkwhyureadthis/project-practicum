@@ -149,7 +149,7 @@ func (h *Handler) CreateOrder(c echo.Context) error {
 		return c.JSON(http.StatusUnauthorized, ErrorResponse{Error: "unauthorized"})
 	}
 
-	order, _ := h.s.CreateOrder(req.DisplayedID, &req.RestaurantID, req.TotalPrice, userID)
+	order, err := h.s.CreateOrder(req.DisplayedID, req.RestaurantID, req.TotalPrice, userID)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, ErrorResponse{Error: err.Error()})
 	}
@@ -157,7 +157,7 @@ func (h *Handler) CreateOrder(c echo.Context) error {
 	resp := OrderResponse{
 		ID:           order.ID,
 		DisplayedID:  order.DisplayedID,
-		RestaurantID: *order.RestaurantID,
+		RestaurantID: order.RestaurantID,
 		TotalPrice:   order.TotalPrice,
 		Status:       order.Status,
 	}
@@ -200,7 +200,7 @@ func (h *Handler) GetOrderByID(c echo.Context) error {
 	resp := OrderResponse{
 		ID:           order.ID,
 		DisplayedID:  order.DisplayedID,
-		RestaurantID: *order.RestaurantID,
+		RestaurantID: order.RestaurantID,
 		TotalPrice:   order.TotalPrice,
 		Status:       order.Status,
 	}
@@ -232,7 +232,7 @@ func (h *Handler) GetAllOrders(c echo.Context) error {
 		resp = append(resp, OrderResponse{
 			ID:           o.ID,
 			DisplayedID:  o.DisplayedID,
-			RestaurantID: *o.RestaurantID,
+			RestaurantID: o.RestaurantID,
 			TotalPrice:   o.TotalPrice,
 			Status:       o.Status,
 		})

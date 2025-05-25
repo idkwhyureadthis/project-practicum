@@ -222,6 +222,38 @@ func (q *Queries) GetRefresh(ctx context.Context, id uuid.UUID) (*string, error)
 	return crypted_refresh, err
 }
 
+const getRestaurantOrders = `-- name: GetRestaurantOrders :many
+SELECT id, displayed_id, restaurant_id, total_price, status, user_id FROM orders
+WHERE restaurant_id = $1
+`
+
+func (q *Queries) GetRestaurantOrders(ctx context.Context, restaurantID uuid.UUID) ([]Order, error) {
+	rows, err := q.db.Query(ctx, getRestaurantOrders, restaurantID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Order
+	for rows.Next() {
+		var i Order
+		if err := rows.Scan(
+			&i.ID,
+			&i.DisplayedID,
+			&i.RestaurantID,
+			&i.TotalPrice,
+			&i.Status,
+			&i.UserID,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getRestaurants = `-- name: GetRestaurants :many
 SELECT id, coordinates, name, open_time, close_time FROM restaurants
 `

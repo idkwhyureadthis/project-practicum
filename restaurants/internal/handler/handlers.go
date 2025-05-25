@@ -332,3 +332,28 @@ func (h *Handler) unbanItem(c echo.Context) error {
 		"message": "ban was successful",
 	})
 }
+
+// @Summary      Get restaurant orders
+// @Tags         Orders
+// @Security     BearerAuth
+// @Accept       json
+// @Produce      json
+// @Success      200 {object} map[string]string
+// @Failure      401 {object} map[string]string
+// @Failure      500 {object} map[string]string
+// @Router       /orders [get]
+func (h *Handler) getOrders(c echo.Context) error {
+	role := c.Get("role").(string)
+	if role != "admin" {
+		return Err2Json("only admins are permitted to do that", c, http.StatusUnauthorized)
+	}
+
+	adminId := uuid.MustParse(c.Get("userID").(string))
+
+	orders, err := h.s.GetOrders(adminId)
+	if err != nil {
+		return Err2Json(err.Error(), c, http.StatusInternalServerError)
+	}
+
+	return c.JSON(http.StatusOK, orders)
+}

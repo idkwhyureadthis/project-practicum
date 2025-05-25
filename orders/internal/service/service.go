@@ -198,7 +198,7 @@ func (s *Service) InvalidateRefreshToken(id uuid.UUID) error {
 	})
 }
 
-func (s *Service) CreateOrder(displayedID int32, restaurantID *uuid.UUID, totalPrice float64, userID uuid.UUID) (*generated.Order, error) {
+func (s *Service) CreateOrder(displayedID int32, restaurantID uuid.UUID, totalPrice float64, userID uuid.UUID) (*generated.Order, error) {
 	order, err := s.conn.CreateOrder(context.Background(), generated.CreateOrderParams{
 		DisplayedID:  displayedID,
 		RestaurantID: restaurantID,
@@ -227,7 +227,7 @@ func (s *Service) GetOrderByID(id, userID uuid.UUID) (*generated.Order, error) {
 }
 
 func (s *Service) GetAllOrders(userID uuid.UUID) ([]generated.Order, error) {
-	return s.conn.GetAllOrders(context.Background(), userID)
+	return s.conn.GetUserOrders(context.Background(), userID)
 }
 
 func (s *Service) DeleteOrder(id, userID uuid.UUID) error {

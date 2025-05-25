@@ -250,9 +250,9 @@ func (s *Service) GetItems(restaurantId uuid.UUID) (*[]generated.GetItemsRow, er
 
 func (s *Service) BanItem(itemID, adminId uuid.UUID) error {
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 	restaurantId, err := s.conn.GetAdminRestaurant(ctx, adminId)
-	cancel()
+	defer cancel()
 
 	if restaurantId == nil {
 		return ErrRestaurantNotFound
@@ -262,19 +262,17 @@ func (s *Service) BanItem(itemID, adminId uuid.UUID) error {
 		return err
 	}
 
-	ctx, cancel = context.WithTimeout(context.Background(), time.Second)
 	err = s.conn.BanItem(ctx, generated.BanItemParams{
 		ItemID:       itemID,
 		RestaurantID: *restaurantId,
 	})
-	cancel()
 	return err
 }
 
 func (s *Service) UnbanItem(itemID, adminId uuid.UUID) error {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
 	restaurantId, err := s.conn.GetAdminRestaurant(ctx, adminId)
-	cancel()
 
 	if restaurantId == nil {
 		return ErrRestaurantNotFound
@@ -284,11 +282,26 @@ func (s *Service) UnbanItem(itemID, adminId uuid.UUID) error {
 		return err
 	}
 
-	ctx, cancel = context.WithTimeout(context.Background(), time.Second)
 	err = s.conn.UnbanItem(ctx, generated.UnbanItemParams{
 		ItemID:       itemID,
 		RestaurantID: *restaurantId,
 	})
-	cancel()
+
 	return err
+}
+
+func (s *Service) GetOrders(adminID uuid.UUID) ([]generated.Order, error) {
+	ctx, cancelFunc := context.WithTimeout(context.Background(), time.Second*2)
+	defer cancelFunc()
+	restaurantId, err := s.conn.GetAdminRestaurant(ctx, adminID)
+
+	if restaurantId == nil {
+		return nil, ErrRestaurantNotFound
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	return s.conn.GetRestaurantOrders(ctx, *restaurantId)
 }

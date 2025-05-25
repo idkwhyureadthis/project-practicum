@@ -19,11 +19,11 @@ RETURNING id, displayed_id, restaurant_id, total_price, status, user_id
 `
 
 type CreateOrderParams struct {
-	DisplayedID  int32      `json:"displayed_id"`
-	RestaurantID *uuid.UUID `json:"restaurant_id"`
-	TotalPrice   float64    `json:"total_price"`
-	Status       string     `json:"status"`
-	UserID       uuid.UUID  `json:"user_id"`
+	DisplayedID  int32     `json:"displayed_id"`
+	RestaurantID uuid.UUID `json:"restaurant_id"`
+	TotalPrice   float64   `json:"total_price"`
+	Status       string    `json:"status"`
+	UserID       uuid.UUID `json:"user_id"`
 }
 
 func (q *Queries) CreateOrder(ctx context.Context, arg CreateOrderParams) (Order, error) {
@@ -95,39 +95,6 @@ func (q *Queries) DeleteOrder(ctx context.Context, arg DeleteOrderParams) error 
 	return err
 }
 
-const getAllOrders = `-- name: GetAllOrders :many
-SELECT id, displayed_id, restaurant_id, total_price, status, user_id FROM orders
-WHERE user_id = $1
-ORDER BY displayed_id
-`
-
-func (q *Queries) GetAllOrders(ctx context.Context, userID uuid.UUID) ([]Order, error) {
-	rows, err := q.db.Query(ctx, getAllOrders, userID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []Order
-	for rows.Next() {
-		var i Order
-		if err := rows.Scan(
-			&i.ID,
-			&i.DisplayedID,
-			&i.RestaurantID,
-			&i.TotalPrice,
-			&i.Status,
-			&i.UserID,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
 const getOrderByID = `-- name: GetOrderByID :one
 SELECT id, displayed_id, restaurant_id, total_price, status, user_id FROM orders
 WHERE id = $1 AND user_id = $2
@@ -164,11 +131,12 @@ func (q *Queries) GetRefresh(ctx context.Context, id uuid.UUID) (*string, error)
 }
 
 const getUserByID = `-- name: GetUserByID :one
-SELECT name, phone_number, mail, birthday, created_at FROM users WHERE id = $1
+SELECT name, id, phone_number, mail, birthday, created_at FROM users WHERE id = $1
 `
 
 type GetUserByIDRow struct {
 	Name        string           `json:"name"`
+	ID          uuid.UUID        `json:"id"`
 	PhoneNumber string           `json:"phone_number"`
 	Mail        string           `json:"mail"`
 	Birthday    pgtype.Date      `json:"birthday"`
@@ -180,12 +148,46 @@ func (q *Queries) GetUserByID(ctx context.Context, id uuid.UUID) (GetUserByIDRow
 	var i GetUserByIDRow
 	err := row.Scan(
 		&i.Name,
+		&i.ID,
 		&i.PhoneNumber,
 		&i.Mail,
 		&i.Birthday,
 		&i.CreatedAt,
 	)
 	return i, err
+}
+
+const getUserOrders = `-- name: GetUserOrders :many
+SELECT id, displayed_id, restaurant_id, total_price, status, user_id FROM orders
+WHERE user_id = $1
+ORDER BY displayed_id
+`
+
+func (q *Queries) GetUserOrders(ctx context.Context, userID uuid.UUID) ([]Order, error) {
+	rows, err := q.db.Query(ctx, getUserOrders, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Order
+	for rows.Next() {
+		var i Order
+		if err := rows.Scan(
+			&i.ID,
+			&i.DisplayedID,
+			&i.RestaurantID,
+			&i.TotalPrice,
+			&i.Status,
+			&i.UserID,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const logIn = `-- name: LogIn :one

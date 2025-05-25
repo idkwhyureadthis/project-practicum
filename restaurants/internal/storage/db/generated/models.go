@@ -33,11 +33,12 @@ type Item struct {
 }
 
 type Order struct {
-	ID           uuid.UUID  `json:"id"`
-	DisplayedID  int32      `json:"displayed_id"`
-	RestaurantID *uuid.UUID `json:"restaurant_id"`
-	TotalPrice   float64    `json:"total_price"`
-	Status       string     `json:"status"`
+	ID           uuid.UUID `json:"id"`
+	DisplayedID  int32     `json:"displayed_id"`
+	RestaurantID uuid.UUID `json:"restaurant_id"`
+	TotalPrice   float64   `json:"total_price"`
+	Status       string    `json:"status"`
+	UserID       uuid.UUID `json:"user_id"`
 }
 
 type Restaurant struct {

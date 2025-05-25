@@ -68,6 +68,8 @@ func (h *Handler) setup() {
 	items := h.e.Group("/items")
 	admins := h.e.Group("/admins")
 	restaurants := h.e.Group("/restaurants")
+	orders := h.e.Group("/orders")
+	orders.GET("", h.getOrders, h.authMiddleware)
 	restaurants.GET("", h.getRestaurants)
 	restaurants.POST("", h.addRestaurant, h.authMiddleware)
 	admins.POST("", h.createAdmin, h.authMiddleware)

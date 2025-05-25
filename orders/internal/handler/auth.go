@@ -120,11 +120,7 @@ func (h *Handler) GetProfile(c echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "invalid user data"})
 	}
 
-	return c.JSON(http.StatusOK, UserResponse{
-		PhoneNumber: dbUser.PhoneNumber,
-		Name:        dbUser.Name,
-		Mail:        dbUser.Mail,
-	})
+	return c.JSON(http.StatusOK, dbUser)
 }
 
 // Logout godoc
