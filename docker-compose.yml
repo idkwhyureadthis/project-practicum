@@ -1,0 +1,49 @@
+version: '3'
+
+services:
+
+  db:
+    image: postgres:17
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 12345
+      POSTGRES_DB: project_pract
+
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d project_pract"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  migrations:
+    build: migrations/
+    env_file: migrations/.env
+    depends_on:
+      db:
+        condition: service_healthy      
+
+  orders:
+    build: orders/
+    env_file: orders/.env
+    ports:
+      - 8081:8081
+    depends_on:
+      migrations:
+        condition: service_completed_successfully
+
+  restaurants:
+    build: restaurants/
+    env_file: restaurants/.env
+    ports:
+      - 8080:8080
+    depends_on:
+      migrations:
+        condition: service_completed_successfully
+
+volumes:
+  postgres_data:

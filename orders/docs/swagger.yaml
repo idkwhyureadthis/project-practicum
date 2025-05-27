@@ -1,0 +1,366 @@
+basePath: /
+definitions:
+  handler.AuthResponse:
+    properties:
+      tokens:
+        $ref: '#/definitions/handler.TokensResponse'
+      user:
+        $ref: '#/definitions/handler.UserResponse'
+    type: object
+  handler.CreateOrderRequest:
+    properties:
+      items:
+        example:
+        - value1
+        - value2
+        items:
+          type: string
+        type: array
+      restaurant_id:
+        type: string
+      sizes:
+        example:
+        - "1"
+        - "2"
+        items:
+          type: string
+        type: array
+    type: object
+  handler.ErrorResponse:
+    properties:
+      error:
+        type: string
+    type: object
+  handler.LogInRequest:
+    properties:
+      password:
+        example: qwerty123
+        type: string
+      phone_number:
+        example: "+79991234567"
+        type: string
+    type: object
+  handler.LogoutResponse:
+    properties:
+      message:
+        type: string
+    type: object
+  handler.OrderResponse:
+    properties:
+      displayed_id:
+        type: integer
+      id:
+        type: string
+      restaurant_id:
+        type: string
+      status:
+        type: string
+      total_price:
+        type: number
+    type: object
+  handler.RefreshRequest:
+    properties:
+      refresh_token:
+        type: string
+    type: object
+  handler.SignUpRequest:
+    properties:
+      email:
+        example: ivan@mail.ru
+        type: string
+      name:
+        example: Иван Иванов
+        type: string
+      password:
+        example: qwerty123
+        type: string
+      phone_number:
+        example: "+79991234567"
+        type: string
+    type: object
+  handler.TokensResponse:
+    properties:
+      access:
+        type: string
+      refresh:
+        type: string
+    type: object
+  handler.UserResponse:
+    properties:
+      birthday:
+        example: "2006-01-02"
+        type: string
+      created_at:
+        type: string
+      id:
+        type: string
+      mail:
+        type: string
+      name:
+        type: string
+      phone_number:
+        type: string
+    type: object
+host: localhost:8081
+info:
+  contact:
+    email: support@project.ru
+    name: API Support
+  description: API для управления ресторанами и заказами
+  termsOfService: http://swagger.io/terms/
+  title: Restaurant & Orders API
+  version: "1.0"
+paths:
+  /login:
+    post:
+      consumes:
+      - application/json
+      description: Аутентификация по номеру телефона и паролю
+      parameters:
+      - description: Данные для входа
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handler.LogInRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handler.AuthResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+      summary: Войти в систему
+      tags:
+      - Auth
+  /logout:
+    post:
+      description: Инвалидирует refresh токен
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handler.LogoutResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Выйти из системы
+      tags:
+      - Auth
+  /orders:
+    get:
+      description: Получает список всех заказов (без фильтрации по пользователю)
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/handler.OrderResponse'
+            type: array
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Получение всех заказов
+      tags:
+      - Orders
+    post:
+      consumes:
+      - application/json
+      description: Создание нового заказа в ресторане
+      parameters:
+      - description: Параметры заказа
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handler.CreateOrderRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handler.OrderResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Создать заказ
+      tags:
+      - Orders
+  /orders/{id}:
+    delete:
+      description: Удаляет заказ по его UUID
+      parameters:
+      - description: UUID заказа
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "204":
+          description: Заказ удалён
+        "400":
+          description: Некорректный UUID
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+        "404":
+          description: Заказ не найден
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Удаление заказа
+      tags:
+      - Orders
+    get:
+      description: Получает заказ по его UUID
+      parameters:
+      - description: UUID заказа
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handler.OrderResponse'
+        "400":
+          description: Некорректный UUID
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+        "404":
+          description: Заказ не найден
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Получение заказа
+      tags:
+      - Orders
+  /profile:
+    get:
+      description: Возвращает данные авторизованного пользователя
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handler.UserResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Получить профиль
+      tags:
+      - Users
+  /refresh:
+    post:
+      consumes:
+      - application/json
+      description: Обновляет access и refresh токены
+      parameters:
+      - description: Refresh токен
+        in: body
+        name: request
+        schema:
+          $ref: '#/definitions/handler.RefreshRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handler.TokensResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Обновить токены
+      tags:
+      - Auth
+  /signup:
+    post:
+      consumes:
+      - application/json
+      description: Создание нового пользователя
+      parameters:
+      - description: Данные регистрации
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handler.SignUpRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handler.AuthResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+      summary: Зарегистрироваться
+      tags:
+      - Auth
+securityDefinitions:
+  BearerAuth:
+    description: Type "Bearer" followed by a space and JWT token
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"
