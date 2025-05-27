@@ -5,7 +5,7 @@ CREATE TABLE orders(
     restaurant_id UUID REFERENCES restaurants(id) NOT NULL,
     total_price FLOAT NOT NULL,
     status TEXT NOT NULL,
-    user_id UUID NOT NULL
+    user_id UUID NOT NULL REFERENCES users(id)
 );
 
 

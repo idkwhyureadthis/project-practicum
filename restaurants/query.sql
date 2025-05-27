@@ -66,3 +66,4 @@ LEFT JOIN banned_items bi ON i.id = bi.item_id AND bi.restaurant_id = $1;
 -- name: GetRestaurantOrders :many
 SELECT * FROM orders
 WHERE restaurant_id = $1;
+

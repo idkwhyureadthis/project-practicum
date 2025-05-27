@@ -15,3 +15,5 @@ var ErrWrongToken = errors.New("invalid token")
 var ErrExpiredToken = errors.New("token expired")
 
 var ErrTokenNotProvided = errors.New("token not provided")
+
+var ErrWrongSize = errors.New("wrong size data provided")

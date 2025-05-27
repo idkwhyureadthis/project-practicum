@@ -3,6 +3,7 @@ package handler
 import (
 	"errors"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -214,7 +215,7 @@ func (h *Handler) addItem(c echo.Context) error {
 	if len(description) != 1 || len(name) != 1 || len(images) == 0 || len(prices) == 0 || len(sizes) == 0 {
 		return Err2Json("wrong item data provided", c, http.StatusBadRequest)
 	}
-	itemId, err := h.s.CreateItem(sizes, prices, name[0], description[0], images)
+	itemId, err := h.s.CreateItem(strings.Split(sizes[0], ","), strings.Split(prices[0], ","), name[0], description[0], images)
 
 	if err != nil {
 		return Err2Json(err.Error(), c, http.StatusInternalServerError)
@@ -356,4 +357,14 @@ func (h *Handler) getOrders(c echo.Context) error {
 	}
 
 	return c.JSON(http.StatusOK, orders)
+}
+
+// called only from other service
+func (h *Handler) createOrder(c echo.Context) error {
+	var data CreateOrderRequest
+	if err := c.Bind(&data); err != nil {
+		return Err2Json(err.Error(), c, http.StatusBadRequest)
+	}
+
+	return nil
 }

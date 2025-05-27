@@ -32,19 +32,18 @@ func New(connUrl string, secret string) *Handler {
 }
 
 func (h *Handler) SetupHandlers() {
-	h.e.GET("/swagger/*", echoSwagger.WrapHandler)
-	h.e.POST("/login", h.LogIn)
-	h.e.POST("/signup", h.SignUp)
-	h.e.POST("/refresh", h.Refresh)
+	h.e.GET("swagger/*", echoSwagger.WrapHandler)
+	h.e.POST("login", h.LogIn)
+	h.e.POST("signup", h.SignUp)
+	h.e.POST("refresh", h.Refresh)
 
 	auth := h.e.Group("")
 	auth.Use(h.AuthMiddleware)
 
-	auth.GET("/profile", h.GetProfile)
-	auth.POST("/logout", h.Logout)
-	auth.POST("/orders", h.CreateOrder)
-	auth.GET("/orders/:id", h.GetOrderByID)
-	auth.GET("/orders", h.GetAllOrders)
-	auth.DELETE("/orders/:id", h.DeleteOrder)
-
+	auth.GET("profile", h.GetProfile)
+	auth.POST("logout", h.Logout)
+	auth.POST("orders", h.CreateOrder)
+	auth.GET("orders/:id", h.GetOrderByID)
+	auth.GET("orders", h.GetUserOrders)
+	auth.DELETE("orders/:id", h.DeleteOrder)
 }

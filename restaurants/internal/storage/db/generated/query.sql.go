@@ -100,6 +100,32 @@ func (q *Queries) CreateItem(ctx context.Context, arg CreateItemParams) (uuid.UU
 	return id, err
 }
 
+const createOrder = `-- name: CreateOrder :exec
+INSERT INTO orders (id, displayed_id, restaurant_id, total_price, status, user_id)
+VALUES ($1, $2, $3, $4, $5, $6)
+`
+
+type CreateOrderParams struct {
+	ID           uuid.UUID `json:"id"`
+	DisplayedID  int32     `json:"displayed_id"`
+	RestaurantID uuid.UUID `json:"restaurant_id"`
+	TotalPrice   float64   `json:"total_price"`
+	Status       string    `json:"status"`
+	UserID       uuid.UUID `json:"user_id"`
+}
+
+func (q *Queries) CreateOrder(ctx context.Context, arg CreateOrderParams) error {
+	_, err := q.db.Exec(ctx, createOrder,
+		arg.ID,
+		arg.DisplayedID,
+		arg.RestaurantID,
+		arg.TotalPrice,
+		arg.Status,
+		arg.UserID,
+	)
+	return err
+}
+
 const getAdmin = `-- name: GetAdmin :one
 SELECT id, login, crypted_password, is_superadmin, restaurant_id, crypted_refresh FROM admins
 WHERE login = $1 AND crypted_password = $2
@@ -159,6 +185,25 @@ func (q *Queries) GetBannedItems(ctx context.Context, restaurantID uuid.UUID) ([
 		return nil, err
 	}
 	return items, nil
+}
+
+const getItemById = `-- name: GetItemById :one
+SELECT id, name, description, sizes, prices, photos FROM items
+WHERE id = $1
+`
+
+func (q *Queries) GetItemById(ctx context.Context, id uuid.UUID) (Item, error) {
+	row := q.db.QueryRow(ctx, getItemById, id)
+	var i Item
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Description,
+		&i.Sizes,
+		&i.Prices,
+		&i.Photos,
+	)
+	return i, err
 }
 
 const getItems = `-- name: GetItems :many

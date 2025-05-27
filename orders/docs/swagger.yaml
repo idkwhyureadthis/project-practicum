@@ -9,12 +9,22 @@ definitions:
     type: object
   handler.CreateOrderRequest:
     properties:
-      displayed_id:
-        type: integer
+      items:
+        example:
+        - value1
+        - value2
+        items:
+          type: string
+        type: array
       restaurant_id:
         type: string
-      total_price:
-        type: number
+      sizes:
+        example:
+        - "1"
+        - "2"
+        items:
+          type: string
+        type: array
     type: object
   handler.ErrorResponse:
     properties:

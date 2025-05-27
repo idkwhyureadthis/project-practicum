@@ -41,6 +41,11 @@ type Order struct {
 	UserID       uuid.UUID `json:"user_id"`
 }
 
+type OrderItem struct {
+	OrderID uuid.UUID `json:"order_id"`
+	ItemID  uuid.UUID `json:"item_id"`
+}
+
 type Restaurant struct {
 	ID          uuid.UUID    `json:"id"`
 	Coordinates pgtype.Point `json:"coordinates"`

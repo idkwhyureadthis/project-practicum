@@ -6,11 +6,11 @@ services:
     image: postgres:17
     environment:
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: qweasdzxc123
-      POSTGRES_DB: swag
+      POSTGRES_PASSWORD: 12345
+      POSTGRES_DB: project_pract
 
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d swag"]
+      test: ["CMD-SHELL", "pg_isready -U postgres -d project_pract"]
       interval: 5s
       timeout: 5s
       retries: 5

@@ -14,11 +14,12 @@ import (
 
 const createOrder = `-- name: CreateOrder :one
 INSERT INTO orders (id, displayed_id, restaurant_id, total_price, status, user_id)
-VALUES (gen_random_uuid(), $1, $2, $3, $4, $5)
+VALUES ($1, $2, $3, $4, $5, $6)
 RETURNING id, displayed_id, restaurant_id, total_price, status, user_id
 `
 
 type CreateOrderParams struct {
+	ID           uuid.UUID `json:"id"`
 	DisplayedID  int32     `json:"displayed_id"`
 	RestaurantID uuid.UUID `json:"restaurant_id"`
 	TotalPrice   float64   `json:"total_price"`
@@ -28,6 +29,7 @@ type CreateOrderParams struct {
 
 func (q *Queries) CreateOrder(ctx context.Context, arg CreateOrderParams) (Order, error) {
 	row := q.db.QueryRow(ctx, createOrder,
+		arg.ID,
 		arg.DisplayedID,
 		arg.RestaurantID,
 		arg.TotalPrice,
@@ -44,6 +46,21 @@ func (q *Queries) CreateOrder(ctx context.Context, arg CreateOrderParams) (Order
 		&i.UserID,
 	)
 	return i, err
+}
+
+const createOrderItem = `-- name: CreateOrderItem :exec
+INSERT INTO order_items (order_id, item_id)
+VALUES ($1, $2)
+`
+
+type CreateOrderItemParams struct {
+	OrderID uuid.UUID `json:"order_id"`
+	ItemID  uuid.UUID `json:"item_id"`
+}
+
+func (q *Queries) CreateOrderItem(ctx context.Context, arg CreateOrderItemParams) error {
+	_, err := q.db.Exec(ctx, createOrderItem, arg.OrderID, arg.ItemID)
+	return err
 }
 
 const createUser = `-- name: CreateUser :one
@@ -93,6 +110,49 @@ type DeleteOrderParams struct {
 func (q *Queries) DeleteOrder(ctx context.Context, arg DeleteOrderParams) error {
 	_, err := q.db.Exec(ctx, deleteOrder, arg.ID, arg.UserID)
 	return err
+}
+
+const getItemById = `-- name: GetItemById :one
+SELECT id, name, description, sizes, prices, photos FROM items
+WHERE id = $1
+`
+
+func (q *Queries) GetItemById(ctx context.Context, id uuid.UUID) (Item, error) {
+	row := q.db.QueryRow(ctx, getItemById, id)
+	var i Item
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Description,
+		&i.Sizes,
+		&i.Prices,
+		&i.Photos,
+	)
+	return i, err
+}
+
+const getOrderByDisplayedId = `-- name: GetOrderByDisplayedId :one
+SELECT id, displayed_id, restaurant_id, total_price, status, user_id FROM orders
+WHERE displayed_id = $1 AND restaurant_id = $2
+`
+
+type GetOrderByDisplayedIdParams struct {
+	DisplayedID  int32     `json:"displayed_id"`
+	RestaurantID uuid.UUID `json:"restaurant_id"`
+}
+
+func (q *Queries) GetOrderByDisplayedId(ctx context.Context, arg GetOrderByDisplayedIdParams) (Order, error) {
+	row := q.db.QueryRow(ctx, getOrderByDisplayedId, arg.DisplayedID, arg.RestaurantID)
+	var i Order
+	err := row.Scan(
+		&i.ID,
+		&i.DisplayedID,
+		&i.RestaurantID,
+		&i.TotalPrice,
+		&i.Status,
+		&i.UserID,
+	)
+	return i, err
 }
 
 const getOrderByID = `-- name: GetOrderByID :one

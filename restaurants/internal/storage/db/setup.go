@@ -9,7 +9,7 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
-func SetupConnection(connUrl string) *generated.Queries {
+func SetupConnection(connUrl string) (*generated.Queries, *pgx.Conn) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 	conn, err := pgx.Connect(ctx, connUrl)
@@ -17,5 +17,5 @@ func SetupConnection(connUrl string) *generated.Queries {
 		log.Fatal(err)
 	}
 	sqlcConn := generated.New(conn)
-	return sqlcConn
+	return sqlcConn, conn
 }

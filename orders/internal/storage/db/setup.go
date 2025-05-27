@@ -8,11 +8,11 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
-func SetupConnection(connUrl string) *generated.Queries {
-	// TODO: define context
-	conn, err := pgx.Connect(context.TODO(), connUrl)
+func SetupConnection(connUrl string) (*generated.Queries, *pgx.Conn) {
+
+	conn, err := pgx.Connect(context.Background(), connUrl)
 	if err != nil || conn == nil {
 		log.Fatal(err)
 	}
-	return generated.New(conn)
+	return generated.New(conn), conn
 }

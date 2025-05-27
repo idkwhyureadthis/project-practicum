@@ -28,11 +28,12 @@ import (
 type Service struct {
 	conn   *generated.Queries
 	secret []byte
+	db     *pgx.Conn
 }
 
 func New(connUrl, secret string) *Service {
 	service := Service{}
-	service.conn = db.SetupConnection(connUrl)
+	service.conn, service.db = db.SetupConnection(connUrl)
 	service.secret = []byte(secret)
 	return &service
 }

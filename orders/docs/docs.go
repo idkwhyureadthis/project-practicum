@@ -424,14 +424,28 @@ const docTemplate = `{
         "handler.CreateOrderRequest": {
             "type": "object",
             "properties": {
-                "displayed_id": {
-                    "type": "integer"
+                "items": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "example": [
+                        "value1",
+                        "value2"
+                    ]
                 },
                 "restaurant_id": {
                     "type": "string"
                 },
-                "total_price": {
-                    "type": "number"
+                "sizes": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "example": [
+                        "1",
+                        "2"
+                    ]
                 }
             }
         },

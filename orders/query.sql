@@ -16,11 +16,6 @@ SELECT crypted_refresh FROM users WHERE id = $1;
 -- name: UpdateRefresh :exec
 UPDATE users SET crypted_refresh = $2 WHERE id = $1;
 
--- name: CreateOrder :one
-INSERT INTO orders (id, displayed_id, restaurant_id, total_price, status, user_id)
-VALUES (gen_random_uuid(), $1, $2, $3, $4, $5)
-RETURNING *;
-
 -- name: GetOrderByID :one
 SELECT * FROM orders
 WHERE id = $1 AND user_id = $2;
@@ -33,3 +28,21 @@ ORDER BY displayed_id;
 -- name: DeleteOrder :exec
 DELETE FROM orders
 WHERE id = $1 AND user_id = $2;
+
+-- name: GetOrderByDisplayedId :one
+SELECT * FROM orders
+WHERE displayed_id = $1 AND restaurant_id = $2;
+
+-- name: GetItemById :one
+SELECT * FROM items
+WHERE id = $1;
+
+
+-- name: CreateOrder :one
+INSERT INTO orders (id, displayed_id, restaurant_id, total_price, status, user_id)
+VALUES ($1, $2, $3, $4, $5, $6)
+RETURNING *;
+
+-- name: CreateOrderItem :exec
+INSERT INTO order_items (order_id, item_id)
+VALUES ($1, $2);

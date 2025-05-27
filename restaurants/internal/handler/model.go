@@ -3,6 +3,7 @@ package handler
 import (
 	"github.com/idkwhyureadthis/project-practicum/restaurants/internal/service"
 	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v4/middleware"
 	echoSwagger "github.com/swaggo/echo-swagger"
 )
 
@@ -37,9 +38,9 @@ type ItemActionRequest struct {
 	ItemId string `json:"item_id"`
 }
 
-type SetupSuperadminRequest struct {
-	Login    string `json:"login" example:"admin"`
-	Password string `json:"password" example:"strongpassword123"`
+type CreateOrderRequest struct {
+	ItemsIDs     []string `json:"item_ids"`
+	RestaurantID string   `json:"restaurant_id"`
 }
 
 type Handler struct {
@@ -57,6 +58,11 @@ func New(connUrl, secret string) *Handler {
 	handler.e = echo.New()
 	handler.s = service.New(connUrl, secret)
 	handler.setup()
+
+	handler.e.Use(middleware.Logger())
+	handler.e.Use(middleware.Recover())
+	handler.e.Use(middleware.CORS())
+
 	return &handler
 }
 
@@ -70,6 +76,7 @@ func (h *Handler) setup() {
 	restaurants := h.e.Group("/restaurants")
 	orders := h.e.Group("/orders")
 	orders.GET("", h.getOrders, h.authMiddleware)
+	orders.POST("", h.createOrder)
 	restaurants.GET("", h.getRestaurants)
 	restaurants.POST("", h.addRestaurant, h.authMiddleware)
 	admins.POST("", h.createAdmin, h.authMiddleware)

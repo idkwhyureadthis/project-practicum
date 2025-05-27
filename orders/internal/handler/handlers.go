@@ -149,20 +149,12 @@ func (h *Handler) CreateOrder(c echo.Context) error {
 		return c.JSON(http.StatusUnauthorized, ErrorResponse{Error: "unauthorized"})
 	}
 
-	order, err := h.s.CreateOrder(req.DisplayedID, req.RestaurantID, req.TotalPrice, userID)
+	data, err := h.s.CreateOrder(req.RestaurantID, userID, req.Items, req.Sizes)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, ErrorResponse{Error: err.Error()})
 	}
 
-	resp := OrderResponse{
-		ID:           order.ID,
-		DisplayedID:  order.DisplayedID,
-		RestaurantID: order.RestaurantID,
-		TotalPrice:   order.TotalPrice,
-		Status:       order.Status,
-	}
-
-	return c.JSON(http.StatusOK, resp)
+	return c.JSON(http.StatusCreated, data)
 }
 
 // GetOrderByID получает заказ по UUID
@@ -207,7 +199,7 @@ func (h *Handler) GetOrderByID(c echo.Context) error {
 	return c.JSON(http.StatusOK, resp)
 }
 
-// GetAllOrders получает все заказы
+// GetUserOrders получает все заказы
 // @Summary Получение всех заказов
 // @Tags Orders
 // @Security BearerAuth
@@ -215,13 +207,13 @@ func (h *Handler) GetOrderByID(c echo.Context) error {
 // @Success 200 {array} OrderResponse
 // @Failure 500 {object} ErrorResponse "Внутренняя ошибка сервера"
 // @Router /orders [get]
-func (h *Handler) GetAllOrders(c echo.Context) error {
+func (h *Handler) GetUserOrders(c echo.Context) error {
 	userID, err := GetUserIDFromContext(c)
 	if err != nil {
 		return c.JSON(http.StatusUnauthorized, ErrorResponse{Error: "unauthorized"})
 	}
 
-	orders, err := h.s.GetAllOrders(userID)
+	orders, err := h.s.GetUserOrders(userID)
 
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, ErrorResponse{Error: err.Error()})
@@ -287,7 +279,7 @@ type SignUpRequest struct {
 }
 
 type CreateOrderRequest struct {
-	DisplayedID  int32     `json:"displayed_id"`
 	RestaurantID uuid.UUID `json:"restaurant_id"`
-	TotalPrice   float64   `json:"total_price"`
+	Items        []string  `json:"items" example:"value1,value2"`
+	Sizes        []string  `json:"sizes" example:"1,2"`
 }

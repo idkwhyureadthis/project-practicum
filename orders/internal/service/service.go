@@ -7,10 +7,13 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"slices"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/idkwhyureadthis/project-practicum/orders/internal/storage/db"
 	"github.com/idkwhyureadthis/project-practicum/orders/internal/storage/db/generated"
+	"github.com/idkwhyureadthis/project-practicum/orders/pkg/orders"
 	"github.com/idkwhyureadthis/project-practicum/orders/pkg/tokens"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
@@ -18,13 +21,14 @@ import (
 )
 
 type Service struct {
+	db     *pgx.Conn
 	conn   *generated.Queries
 	secret []byte
 }
 
 func New(connUrl string, secretKey string) *Service {
 	service := Service{}
-	service.conn = db.SetupConnection(connUrl)
+	service.conn, service.db = db.SetupConnection(connUrl)
 	service.secret = []byte(secretKey)
 	return &service
 }
@@ -198,18 +202,81 @@ func (s *Service) InvalidateRefreshToken(id uuid.UUID) error {
 	})
 }
 
-func (s *Service) CreateOrder(displayedID int32, restaurantID uuid.UUID, totalPrice float64, userID uuid.UUID) (*generated.Order, error) {
-	order, err := s.conn.CreateOrder(context.Background(), generated.CreateOrderParams{
-		DisplayedID:  displayedID,
-		RestaurantID: restaurantID,
-		TotalPrice:   totalPrice,
-		Status:       "pending",
-		UserID:       userID,
-	})
+func (s *Service) CreateOrder(restaurantID, userID uuid.UUID, itemsID []string, sizes []string) (*generated.Order, error) {
+	ctx, cancelFunc := context.WithTimeout(context.Background(), time.Second*10)
+	var err error
+	var displayedID int32
+	var totalPrice float64
+	for !errors.Is(err, pgx.ErrNoRows) {
+		displayedID = orders.GenerateOrderId()
+		_, err = s.conn.GetOrderByDisplayedId(ctx, generated.GetOrderByDisplayedIdParams{
+			RestaurantID: restaurantID,
+			DisplayedID:  displayedID,
+		})
+	}
+	defer cancelFunc()
+	for idx, itemID := range itemsID {
+		itemUUID, err := uuid.Parse(itemID)
+		if err != nil {
+			return nil, err
+		}
+		item, err := s.conn.GetItemById(ctx, itemUUID)
+		if err != nil {
+			return nil, err
+		}
+
+		var priceIndex int
+		if len(item.Prices) != 1 {
+			priceIndex = slices.Index(item.Sizes, sizes[idx])
+			if priceIndex == -1 {
+				return nil, ErrWrongSize
+			}
+		}
+
+		totalPrice += item.Prices[priceIndex]
+	}
+
+	tx, err := s.db.Begin(ctx)
 	if err != nil {
 		return nil, err
 	}
-	return &order, nil
+	defer tx.Rollback(ctx)
+
+	qtx := s.conn.WithTx(tx)
+
+	orderId := uuid.New()
+	orderData, err := qtx.CreateOrder(ctx, generated.CreateOrderParams{
+		ID:           orderId,
+		DisplayedID:  displayedID,
+		RestaurantID: restaurantID,
+		TotalPrice:   totalPrice,
+		Status:       "created",
+		UserID:       userID,
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	for _, id := range itemsID {
+		orderUUID, err := uuid.Parse(id)
+		if err != nil {
+			return nil, err
+		}
+		err = qtx.CreateOrderItem(ctx, generated.CreateOrderItemParams{
+			OrderID: orderId,
+			ItemID:  orderUUID,
+		})
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return nil, err
+	}
+
+	return &orderData, nil
 }
 
 func (s *Service) GetOrderByID(id, userID uuid.UUID) (*generated.Order, error) {
@@ -226,7 +293,7 @@ func (s *Service) GetOrderByID(id, userID uuid.UUID) (*generated.Order, error) {
 	return &order, nil
 }
 
-func (s *Service) GetAllOrders(userID uuid.UUID) ([]generated.Order, error) {
+func (s *Service) GetUserOrders(userID uuid.UUID) ([]generated.Order, error) {
 	return s.conn.GetUserOrders(context.Background(), userID)
 }
 
